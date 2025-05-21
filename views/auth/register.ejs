@@ -1,0 +1,53 @@
+<% layout('layouts/boilerplate') %>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card bg-dark-3 border-0 shadow-sm">
+                <div class="card-body p-5">
+                    <h2 class="card-title text-center mb-4 text-white">Create Account</h2>
+                    
+                    <% if (error) { %>
+                        <div class="alert alert-danger mb-3" role="alert">
+                            <%= error %>
+                        </div>
+                    <% } %>
+                    <% if (success) { %>
+                        <div class="alert alert-success mb-3" role="alert">
+                            <%= success %>
+                        </div>
+                    <% } %>
+                    
+                    <form action="/register" method="POST">
+                        <div class="mb-3">
+                            <label for="username" class="form-label text-white-50">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label text-white-50">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label text-white-50">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Create Account</button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p class="text-white-50 mb-0">Already have an account? <a href="/login" class="text-primary">Log in</a></p>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <p class="text-white-50 mb-0">Already have an account? <a href="/login" class="text-primary">Log in</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

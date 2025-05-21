@@ -1,0 +1,44 @@
+<% layout('layouts/boilerplate') %>
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-5 fw-bold mb-4" style="color: var(--primary-color) !important;">Saved Campgrounds</h1>
+        </div>
+    </div>
+
+    <% if (!campgrounds || campgrounds.length === 0) { %>
+        <div class="text-center py-5">
+            <h2 class="mb-3" style="color: var(--primary-color) !important;">No Saved Campgrounds</h2>
+            <p class="text-white-50">You haven't saved any campgrounds yet. Start saving your favorite campgrounds by clicking the save button on any campground page.</p>
+            <a href="/campgrounds" class="btn btn-primary">Browse Campgrounds</a>
+        </div>
+    <% } else { %>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            <% campgrounds.forEach(campground => { %>
+                <% if (campground) { %>
+                    <div class="col">
+                        <div class="card h-100 bg-dark-3 border-0">
+                            <img src="<%= campground.image %>?auto=format" class="card-img-top" alt="<%= campground.title %>">
+                            <div class="card-body">
+                                <h5 class="card-title text-white"><%= campground.title %></h5>
+                                <p class="card-text text-white-50"><%= campground.description.substring(0, 100) + '...' %></p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-white-50"><i class="fas fa-map-marker-alt me-1"></i> <%= campground.location %></span>
+                                    <div class="d-flex gap-2">
+                                        <a href="/campgrounds/<%= campground._id %>" class="btn btn-outline-light">View Details</a>
+                                        <form action="/campgrounds/<%= campground._id %>/unsave" method="POST" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-danger">
+                                                <i class="fas fa-trash-alt me-1"></i> Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <% } %>
+            <% }) %>
+        </div>
+    <% } %>
+</div>

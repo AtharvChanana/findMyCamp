@@ -1,0 +1,100 @@
+const express = require('express');
+const router = express.Router();
+const Campground = require('../models/campground');
+const catchAsync = require('../utils/catchAsync');
+const { isLoggedIn } = require('../middleware');
+
+// GET saved campgrounds
+router.get('/saved', isLoggedIn, catchAsync(async (req, res) => {
+    const user = req.user;
+    
+    // First populate the saved campgrounds array
+    const savedCampgrounds = await Promise.all(
+        user.savedCampgrounds.map(async (campgroundId) => {
+            try {
+                const campground = await Campground.findById(campgroundId)
+                    .populate('author');
+                return campground;
+            } catch (err) {
+                console.error(`Error fetching campground ${campgroundId}:`, err);
+                return null;
+            }
+        })
+    );
+    
+    // Filter out any null results
+    const validCampgrounds = savedCampgrounds.filter(Boolean);
+    
+    res.render('campgrounds/saved', {
+        campgrounds: validCampgrounds,
+        currentUser: req.user
+    });
+}));
+
+// POST save campground
+router.post('/:id/save', isLoggedIn, catchAsync(async (req, res) => {
+    const campgroundId = req.params.id;
+    const user = req.user;
+    const campground = await Campground.findById(campgroundId);
+    
+    if (!campground) {
+        req.flash('error', 'Campground not found');
+        return res.redirect('/campgrounds');
+    }
+
+    // Check if user has already saved this campground
+    const isSaved = user.savedCampgrounds.includes(campgroundId);
+    
+    if (!isSaved) {
+        // Add to user's saved campgrounds
+        user.savedCampgrounds.push(campgroundId);
+        // Add user to campground's savedBy list
+        campground.savedBy.push(user._id);
+        
+        await Promise.all([
+            user.save(),
+            campground.save()
+        ]);
+        
+        req.flash('success', 'Campground saved successfully');
+    } else {
+        req.flash('info', 'Campground already saved');
+    }
+    
+    res.redirect(`/campgrounds/${campgroundId}`);
+}));
+
+// POST unsave campground
+router.post('/:id/unsave', isLoggedIn, catchAsync(async (req, res) => {
+    const campgroundId = req.params.id;
+    const user = req.user;
+    const campground = await Campground.findById(campgroundId);
+    
+    if (!campground) {
+        req.flash('error', 'Campground not found');
+        return res.redirect('/campgrounds');
+    }
+
+    // Check if user has saved this campground
+    const isSaved = user.savedCampgrounds.includes(campgroundId);
+    
+    if (isSaved) {
+        // Remove from user's saved campgrounds
+        user.savedCampgrounds.pull(campgroundId);
+        // Remove user from campground's savedBy list
+        campground.savedBy.pull(user._id);
+        
+        await Promise.all([
+            user.save(),
+            campground.save()
+        ]);
+        
+        req.flash('success', 'Campground removed from saved list');
+    } else {
+        req.flash('info', 'Campground not in saved list');
+    }
+    
+    res.redirect('/campgrounds/saved');
+}));
+
+module.exports = router;

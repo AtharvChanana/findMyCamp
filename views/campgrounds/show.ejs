@@ -1,0 +1,419 @@
+<% layout('layouts/boilerplate') %>
+
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb" class="py-3 bg-dark-2" style="background-color: var(--dark-surface) !important;">
+    <div class="container">
+        <ol class="breadcrumb mb-0 text-white-50">
+            <li class="breadcrumb-item"><a href="/" class="text-decoration-none text-white-50">Home</a></li>
+            <li class="breadcrumb-item"><a href="/campgrounds" class="text-decoration-none text-white-50">Campgrounds</a></li>
+            <li class="breadcrumb-item active text-white" aria-current="page"><%= campground.title %></li>
+        </ol>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<div class="container py-4">
+    <!-- Campground Header -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="bg-dark-3 p-4 rounded-3">
+                <h1 class="display-5 fw-bold mb-2" style="color: var(--primary-color) !important;"><%= campground.title %></h1>
+                <div class="bg-dark-3 p-3 rounded-3">
+                    <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-star text-warning me-1"></i>
+                            <span class="me-2" style="color: var(--primary-color) !important;">4.8</span>
+                            <span style="color: var(--primary-color) !important;">Greensboro, North Carolina</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-map-marker-alt text-primary me-1"></i>
+                            <span style="color: var(--primary-color) !important;"><%= campground.location || 'National Park, CA' %></span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-tag text-success me-1"></i>
+                            <span style="color: var(--primary-color) !important;">$<%= campground.price || '29' %>/night</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+            <div class="bg-dark-3 p-2 rounded-3">
+                <div class="d-flex gap-2 justify-content-end">
+                    <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+                    <form action="/campgrounds/<%= campground._id %>/save" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-outline-light btn-save" data-campground-id="<%= campground._id %>">
+                            <i class="far fa-heart me-1"></i>
+                            <span style="color: var(--primary-color) !important;">Save</span>
+                        </button>
+                    </form>
+                    <% } else { %>
+                        <a href="/login" class="btn btn-outline-light">
+                            <i class="far fa-heart me-1"></i>
+                            <span style="color: var(--primary-color) !important;">Login to Save</span>
+                        </a>
+                    <% } %>
+                    <button class="btn btn-outline-light btn-share" data-bs-toggle="tooltip" title="Share this campground">
+                        <i class="fas fa-share-alt me-1"></i>
+                        <span class="btn-text" style="color: var(--primary-color) !important;">Share</span>
+                    </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Gallery -->
+    <div class="row g-3 mb-5">
+        <div class="col-md-8">
+            <div class="card border-0 rounded-3 overflow-hidden h-100 bg-dark">
+                <img src="<%= campground.images && campground.images.length ? campground.images[0].url : 'https://source.unsplash.com/random/800x600/?camping' %>" 
+                     class="card-img-top w-100 h-100 object-fit-cover" 
+                     alt="<%= campground.title %>" 
+                     style="min-height: 400px; opacity: 0.9; transition: opacity 0.3s ease;">
+                <div class="card-img-overlay d-flex align-items-end p-0">
+                    <div class="w-100 p-4" style="background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);">
+                        <h2 class="text-white mb-0"><%= campground.title %></h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="row g-3 h-100">
+                <div class="col-6 col-md-12">
+                    <div class="card border-0 rounded-3 overflow-hidden h-100 bg-dark">
+                        <img src="<%= campground.images && campground.images.length > 1 ? campground.images[1].url : 'https://source.unsplash.com/random/400x300/?tent' %>" 
+                             class="card-img-top w-100 h-100 object-fit-cover" 
+                             alt="<%= campground.title %>"
+                             style="min-height: 190px; opacity: 0.9; transition: opacity 0.3s ease;">
+                    </div>
+                </div>
+                <div class="col-6 col-md-12">
+                    <div class="card border-0 rounded-3 overflow-hidden h-100 position-relative bg-dark">
+                        <img src="<%= campground.images && campground.images.length > 2 ? campground.images[2].url : 'https://source.unsplash.com/random/400x300/?campfire' %>" 
+                             class="card-img-top w-100 h-100 object-fit-cover" 
+                             alt="<%= campground.title %>"
+                             style="min-height: 190px; opacity: 0.9; transition: opacity 0.3s ease;">
+                        <button class="btn btn-primary position-absolute bottom-0 end-0 m-3 rounded-circle" 
+                                style="width: 40px; height: 40px;"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#imageGalleryModal"
+                                aria-label="View all photos">
+                            <i class="fas fa-images"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Campground Details (to be added in next update) -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4 bg-dark-3">
+                <div class="card-body">
+                    <h3 class="h5 mb-4 text-white">About this campground</h3>
+                    <div class="text-white-50">
+                        <% if (campground.description && campground.description.trim() !== '') { %>
+                            <p class="card-text text-white-50"><%= campground.description %></p>
+                        <% } else { %>
+                            <p class="card-text text-white-50 fst-italic">No description available for this campground.</p>
+                        <% } %>
+                    
+                    <div class="mt-4">
+                        <h4 class="h6 mt-4 mb-3 text-white">Amenities</h4>
+                        <div class="text-white-50">
+                        <div class="row g-3 text-white-50">
+                            <div class="col-6 col-md-4">
+                                <div class="d-flex align-items-center text-white-50">
+                                    <div class="icon-wrapper bg-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
+                                        <i class="fas fa-fire text-primary" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span>Fire pit</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="d-flex align-items-center text-white-50">
+                                    <div class="icon-wrapper bg-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
+                                        <i class="fas fa-utensils text-primary" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span>Picnic table</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="d-flex align-items-center text-white-50">
+                                    <div class="icon-wrapper bg-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
+                                        <i class="fas fa-toilet text-primary" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span>Toilet</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="d-flex align-items-center text-white-50">
+                                    <div class="icon-wrapper bg-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
+                                        <i class="fas fa-shower text-primary" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span>Shower</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="d-flex align-items-center text-white-50">
+                                    <div class="icon-wrapper bg-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
+                                        <i class="fas fa-wifi text-primary" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span>WiFi</span>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <div class="d-flex align-items-center text-white-50">
+                                    <div class="icon-wrapper bg-dark rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 24px; height: 24px;">
+                                        <i class="fas fa-parking text-primary" style="font-size: 0.8rem;"></i>
+                                    </div>
+                                    <span>Parking</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Booking Card -->
+            <div class="card border-0 shadow-sm sticky-top bg-dark-2" style="top: 20px;">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <span class="h3 fw-bold text-white">$<%= campground.price || '29' %></span>
+                            <span class="text-white-50"> / night</span>
+                        </div>
+                        <span class="badge bg-success bg-opacity-25 text-success border border-success">
+                            <i class="fas fa-check-circle me-1"></i> Available
+                        </span>
+                    </div>
+                    
+                    <form class="needs-validation" novalidate>
+                        <div class="mb-3">
+                            <label class="form-label text-white-50 mb-1">Dates</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-dark text-white-50">
+                                    <i class="far fa-calendar-alt"></i>
+                                </span>
+                                <input type="text" class="form-control bg-dark border-dark text-white" 
+                                       placeholder="Select dates" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label text-white-50 mb-1">Guests</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark border-dark text-white-50">
+                                    <i class="fas fa-users"></i>
+                                </span>
+                                <select class="form-select bg-dark border-dark text-white">
+                                    <option value="1">1 guest</option>
+                                    <option value="2">2 guests</option>
+                                    <option value="3">3 guests</option>
+                                    <option value="4">4+ guests</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100 py-3 fw-bold mb-3">
+                            <i class="fas fa-calendar-check me-2"></i> Check Availability
+                        </button>
+                        
+                        <div class="text-center mb-3">
+                            <p class="text-white-50 small mb-1">
+                                <i class="far fa-credit-card me-1"></i> Pay when you stay
+                            </p>
+                            <p class="text-white-50 small mb-0">
+                                <i class="fas fa-shield-alt me-1"></i> Free cancellation up to 24 hours before check-in
+                            </p>
+                        </div>
+                        
+                        <div class="border-top border-dark pt-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-white-50">$<%= (campground.price * 3 || 87).toFixed(2) %> x 3 nights</span>
+                                <span class="text-white">$<%= (campground.price * 3 || 87).toFixed(2) %></span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-white-50">Cleaning fee</span>
+                                <span class="text-white-50">$25/night</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-white-50">Service fee</span>
+                                <span class="text-white">$15.00</span>
+                            </div>
+                            <div class="d-flex justify-content-between pt-2 border-top border-dark mt-3">
+                                <span class="fw-bold text-white">Total</span>
+                                <span class="fw-bold text-white">$<%= ((campground.price * 3 || 87) + 40).toFixed(2) %></span>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Host Info -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body text-center">
+                    <img src="https://randomuser.me/api/portraits/men/1.jpg" 
+                         class="rounded-circle mb-3" 
+                         width="80" 
+                         height="80" 
+                         alt="Host">
+                    <h5 class="h6 mb-1">Hosted by John</h5>
+                    <p class="text-muted small mb-3">Superhost · 5 years hosting</p>
+                    <p class="small text-muted">Response rate: 100% · Response time: within an hour</p>
+                    <button class="btn btn-outline-primary w-100 mb-2 btn-contact-host" data-host-id="<%= campground.author || 'host_123' %>">
+                        <i class="fas fa-envelope me-2"></i>Contact Host
+                    </button>
+                </div>
+            </div>
+
+            <!-- Things to Know -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h3 class="h5 mb-3">Things to know</h3>
+                    
+                    <div class="accordion" id="rulesAccordion">
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button bg-transparent shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                    House Rules
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#rulesAccordion">
+                                <div class="accordion-body p-0 pt-2">
+                                    <div class="d-flex mb-2">
+                                        <i class="fas fa-smoking-ban text-muted me-2 mt-1"></i>
+                                        <span>No smoking</span>
+                                    </div>
+                                    <div class="d-flex mb-2">
+                                        <i class="fas fa-dog text-muted me-2 mt-1"></i>
+                                        <span>Pets allowed</span>
+                                    </div>
+                                    <div class="d-flex">
+                                        <i class="fas fa-clock text-muted me-2 mt-1"></i>
+                                        <span>Check-in: After 2 PM · Checkout: 12 PM</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed bg-transparent shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                    Cancellation Policy
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#rulesAccordion">
+                                <div class="accordion-body p-0 pt-2">
+                                    <p class="small">Free cancellation up to 5 days before check-in. After that, cancel up to 24 hours before check-in and get a full refund, minus the first night.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Review Modal -->
+<div class="modal fade" id="addReviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Write a Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="mb-3">
+                        <label class="form-label">Rating</label>
+                        <div class="star-rating">
+                            <input type="hidden" id="rating" name="rating" value="5">
+                            <i class="fas fa-star star" onclick="setRating(5, 'rating')"></i>
+                            <i class="fas fa-star star" onclick="setRating(4, 'rating')"></i>
+                            <i class="fas fa-star star" onclick="setRating(3, 'rating')"></i>
+                            <i class="fas fa-star star" onclick="setRating(2, 'rating')"></i>
+                            <i class="fas fa-star star" onclick="setRating(1, 'rating')"></i>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Your Review</label>
+                        <textarea class="form-control" rows="4" placeholder="Share your experience..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Add Photos (Optional)</label>
+                        <input type="file" class="form-control" multiple accept="image/*">
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Review
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gallery Modal -->
+<div class="modal fade" id="galleryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="<%= campground.image || 'https://images.unsplash.com/photo-1533873984035-25970ab07461?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80' %>" 
+                     class="img-fluid" 
+                     alt="<%= campground.title %>">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.star-rating {
+    font-size: 24px;
+    color: #ffc107;
+    cursor: pointer;
+}
+.star-rating .far {
+    margin-right: 5px;
+}
+.star-rating .far:hover,
+.star-rating .far.active {
+    font-weight: 900;
+}
+</style>
+
+<script>
+// Star rating functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const stars = document.querySelectorAll('.star-rating .far');
+    const ratingInput = document.getElementById('rating');
+    
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = this.getAttribute('data-rating');
+            ratingInput.value = rating;
+            
+            // Update star display
+            stars.forEach((s, index) => {
+                if (index < rating) {
+                    s.classList.add('fas', 'active');
+                    s.classList.remove('far');
+                } else {
+                    s.classList.add('far');
+                    s.classList.remove('fas', 'active');
+                }
+            });
+        });
+    });
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>

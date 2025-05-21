@@ -1,0 +1,85 @@
+/* Star rating */
+.star-rating {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 0.25rem;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.star {
+    color: #dee2e6;
+    transition: color 0.2s ease;
+}
+
+.star:hover,
+.star.active,
+.star-rating:hover .star {
+    color: #ffc107;
+}
+
+.star-rating .star:hover ~ .star,
+.star-rating .star.active ~ .star {
+    color: #ffc107;
+}
+
+/* Gallery */
+.gallery-thumbnail {
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+    opacity: 0.7;
+}
+
+.gallery-thumbnail:hover,
+.gallery-thumbnail.active {
+    transform: scale(1.05);
+    opacity: 1;
+    border: 2px solid var(--primary-color);
+}
+
+/* Buttons */
+.btn {
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn i {
+    transition: transform 0.2s ease;
+}
+
+.btn:hover i {
+    transform: translateX(3px);
+}
+
+/* Forms */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(58, 134, 255, 0.25);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .star-rating {
+        font-size: 1.25rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+    }
+}
