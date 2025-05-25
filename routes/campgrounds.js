@@ -33,35 +33,58 @@ router.get('/saved', isLoggedIn, catchAsync(async (req, res) => {
 
 // POST save campground
 router.post('/:id/save', isLoggedIn, catchAsync(async (req, res) => {
-    const campgroundId = req.params.id;
-    const user = req.user;
-    const campground = await Campground.findById(campgroundId);
-    
-    if (!campground) {
-        req.flash('error', 'Campground not found');
-        return res.redirect('/campgrounds');
-    }
+    try {
+        const campgroundId = req.params.id;
+        const user = req.user;
+        const campground = await Campground.findById(campgroundId);
+        
+        if (!campground) {
+            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+                return res.status(404).json({ success: false, message: 'Campground not found' });
+            }
+            req.flash('error', 'Campground not found');
+            return res.redirect('/campgrounds');
+        }
 
-    // Check if user has already saved this campground
-    const isSaved = user.savedCampgrounds.includes(campgroundId);
-    
-    if (!isSaved) {
-        // Add to user's saved campgrounds
-        user.savedCampgrounds.push(campgroundId);
-        // Add user to campground's savedBy list
-        campground.savedBy.push(user._id);
+        // Check if user has already saved this campground
+        const isSaved = user.savedCampgrounds.includes(campgroundId);
         
-        await Promise.all([
-            user.save(),
-            campground.save()
-        ]);
+        if (!isSaved) {
+            // Add to user's saved campgrounds
+            user.savedCampgrounds.push(campgroundId);
+            // Add user to campground's savedBy list
+            campground.savedBy.push(user._id);
+            
+            await Promise.all([
+                user.save(),
+                campground.save()
+            ]);
+            
+            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+                return res.json({ success: true, message: 'Campground saved successfully', action: 'saved' });
+            }
+            
+            req.flash('success', 'Campground saved successfully');
+        } else {
+            if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+                return res.json({ success: true, message: 'Campground already saved', action: 'already_saved' });
+            }
+            req.flash('info', 'Campground already saved');
+        }
         
-        req.flash('success', 'Campground saved successfully');
-    } else {
-        req.flash('info', 'Campground already saved');
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            return res.json({ success: true, message: 'Request processed' });
+        }
+        
+        res.redirect(`/campgrounds/${campgroundId}`);
+    } catch (error) {
+        console.error('Error saving campground:', error);
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            return res.status(500).json({ success: false, message: 'Error saving campground' });
+        }
+        req.flash('error', 'Error saving campground');
+        res.redirect('back');
     }
-    
-    res.redirect(`/campgrounds/${campgroundId}`);
 }));
 
 // POST unsave campground

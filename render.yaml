@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: yelpcamp
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        fromDatabase:
+          name: yelpcamp-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production
+    plan: free
+
+databases:
+  - name: yelpcamp-db
+    databaseName: yelpcamp
+    user: yelpcamp_user
+    plan: free
+    ipAllowList:
+      - 0.0.0.0/0

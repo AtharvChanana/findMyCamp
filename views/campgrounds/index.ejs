@@ -1,5 +1,12 @@
 <% layout('layouts/boilerplate') %>
 
+<style>
+    .campgrounds-header h2,
+    .campgrounds-header h2 * {
+        color: #212529 !important;
+    }
+</style>
+
 <!-- Search and Filter Section -->
 <section class="py-5 bg-light">
     <div class="container">
@@ -76,7 +83,7 @@
 <!-- Campgrounds Grid -->
 <section class="py-5">
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-5 campgrounds-header">
             <h2 class="mb-0">
                 <% if (searchQuery) { %>
                     Search Results
@@ -86,13 +93,56 @@
             </h2>
             <div class="dropdown">
                 <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="fas fa-sort me-2"></i>Sort By
+                    <i class="fas fa-sort me-2"></i>
+                    <% if (currentSort === 'newest') { %>
+                        Newest
+                    <% } else if (currentSort === 'oldest') { %>
+                        Oldest
+                    <% } else if (currentSort === 'price_asc') { %>
+                        Price: Low to High
+                    <% } else if (currentSort === 'price_desc') { %>
+                        Price: High to Low
+                    <% } else if (currentSort === 'rating_desc') { %>
+                        Highest Rated
+                    <% } else if (currentSort === 'rating_asc') { %>
+                        Lowest Rated
+                    <% } else { %>
+                        Sort By
+                    <% } %>
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="sortDropdown">
-                    <li><a class="dropdown-item" href="#">Most Popular</a></li>
-                    <li><a class="dropdown-item" href="#">Highest Rated</a></li>
-                    <li><a class="dropdown-item" href="#">Price: Low to High</a></li>
-                    <li><a class="dropdown-item" href="#">Price: High to Low</a></li>
+                    <li><a class="dropdown-item <%= currentSort === 'newest' ? 'active' : '' %>" 
+                          href="?<%= new URLSearchParams({ ...req.query, sort: 'newest' }).toString() %>">
+                        <i class="fas fa-clock me-2"></i>Newest
+                        <% if (currentSort === 'newest') { %><i class="fas fa-check ms-2"></i><% } %>
+                    </a></li>
+                    <li><a class="dropdown-item <%= currentSort === 'oldest' ? 'active' : '' %>" 
+                          href="?<%= new URLSearchParams({ ...req.query, sort: 'oldest' }).toString() %>">
+                        <i class="far fa-clock me-2"></i>Oldest
+                        <% if (currentSort === 'oldest') { %><i class="fas fa-check ms-2"></i><% } %>
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item <%= currentSort === 'price_asc' ? 'active' : '' %>" 
+                          href="?<%= new URLSearchParams({ ...req.query, sort: 'price_asc' }).toString() %>">
+                        <i class="fas fa-sort-amount-up-alt me-2"></i>Price: Low to High
+                        <% if (currentSort === 'price_asc') { %><i class="fas fa-check ms-2"></i><% } %>
+                    </a></li>
+                    <li><a class="dropdown-item <%= currentSort === 'price_desc' ? 'active' : '' %>" 
+                          href="?<%= new URLSearchParams({ ...req.query, sort: 'price_desc' }).toString() %>">
+                        <i class="fas fa-sort-amount-down me-2"></i>Price: High to Low
+                        <% if (currentSort === 'price_desc') { %><i class="fas fa-check ms-2"></i><% } %>
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item <%= currentSort === 'rating_desc' ? 'active' : '' %>" 
+                          href="?<%= new URLSearchParams({ ...req.query, sort: 'rating_desc' }).toString() %>">
+                        <i class="fas fa-star me-2"></i>Highest Rated
+                        <% if (currentSort === 'rating_desc') { %><i class="fas fa-check ms-2"></i><% } %>
+                    </a></li>
+                    <li><a class="dropdown-item <%= currentSort === 'rating_asc' ? 'active' : '' %>" 
+                          href="?<%= new URLSearchParams({ ...req.query, sort: 'rating_asc' }).toString() %>">
+                        <i class="far fa-star me-2"></i>Lowest Rated
+                        <% if (currentSort === 'rating_asc') { %><i class="fas fa-check ms-2"></i><% } %>
+                    </a></li>
                 </ul>
             </div>
         </div>
@@ -113,15 +163,28 @@
                 <% for(let campground of campgrounds){ %>
                     <div class="col-lg-4 col-md-6" data-aos="fade-up">
                         <div class="card h-100 shadow-sm">
-                            <div class="position-relative">
-                                <img src="<%= campground.image || 'https://images.unsplash.com/photo-1533873984035-25970ab07461?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80' %>" 
-                                     class="card-img-top" 
-                                     alt="<%= campground.title %>"
-                                     style="height: 220px; object-fit: cover;">
+                            <div class="position-relative" style="height: 220px; background-color: #f8f9fa;">
+                                <div class="image-container" style="height: 100%; width: 100%; position: relative; overflow: hidden;">
+                                    <img src="<%= campground.image || '' %>" 
+                                         class="campground-image" 
+                                         alt="<%= campground.title %>"
+                                         style="height: 100%; width: 100%; object-fit: cover;"
+                                         onerror="this.onerror=null; this.style.display='none'; this.parentElement.querySelector('.no-image').style.display='flex';">
+                                    <div class="no-image" style="display: none; height: 100%; width: 100%; flex-direction: column; justify-content: center; align-items: center; background-color: #e9ecef; color: #6c757d;">
+                                        <i class="fas fa-image fa-3x mb-2"></i>
+                                        <span>No Image Available</span>
+                                    </div>
+                                </div>
                                 <div class="position-absolute top-0 end-0 m-3">
-                                    <button class="btn btn-sm btn-light rounded-circle shadow-sm" data-bs-toggle="tooltip" data-bs-placement="left" title="Add to favorites">
-                                        <i class="far fa-heart text-danger"></i>
-                                    </button>
+                                    <form action="/campgrounds/<%= campground._id %>/save" method="POST" class="d-inline favorite-form">
+                                        <button type="submit" class="btn btn-sm btn-light rounded-circle shadow-sm favorite-btn" 
+                                                data-bs-toggle="tooltip" 
+                                                data-bs-placement="left" 
+                                                title="Add to favorites"
+                                                data-campground-id="<%= campground._id %>">
+                                            <i class="<%= currentUser && currentUser.savedCampgrounds && currentUser.savedCampgrounds.includes(campground._id.toString()) ? 'fas' : 'far' %> fa-heart text-danger"></i>
+                                        </button>
+                                    </form>
                                 </div>
                                 <div class="position-absolute bottom-0 start-0 w-100 p-3" style="background: linear-gradient(transparent, rgba(0,0,0,0.7));">
                                     <div class="d-flex justify-content-between align-items-center">
@@ -129,11 +192,11 @@
                                             <h5 class="text-white mb-0"><%= campground.title %></h5>
                                             <div class="d-flex align-items-center text-white small">
                                                 <i class="fas fa-map-marker-alt me-1"></i>
-                                                <span>Location, State</span>
+                                                <span><%= campground.location || 'Location not specified' %></span>
                                             </div>
                                         </div>
                                         <div class="bg-primary text-white rounded-pill px-3 py-1 small fw-bold">
-                                            $<%= Math.floor(Math.random() * 50) + 20 %>/night
+                                            $<%= campground.price && !isNaN(campground.price) ? parseFloat(campground.price).toFixed(2) : '0.00' %>/night
                                         </div>
                                     </div>
                                 </div>
@@ -143,8 +206,8 @@
                                     <div class="d-flex align-items-center">
                                         <div class="me-2">
                                             <i class="fas fa-star text-warning"></i>
-                                            <span class="ms-1">4.8</span>
-                                            <span class="text-muted">(24)</span>
+                                            <span class="ms-1"><%= typeof campground.rating !== 'undefined' ? campground.rating.toFixed(1) : 'N/A' %></span>
+                                            <span class="text-muted">(<%= typeof campground.reviewCount !== 'undefined' ? campground.reviewCount : '0' %>)</span>
                                         </div>
                                         <div class="ms-3">
                                             <i class="fas fa-tent text-muted"></i>
@@ -211,7 +274,7 @@
         <div class="row justify-content-center">
             <div class="col-lg-8" data-aos="fade-up">
                 <h2 class="mb-4">Ready for an Adventure?</h2>
-                <p class="lead mb-4">Join thousands of campers who have already found their perfect camping experience with YelpCamp.</p>
+                <p class="lead mb-4">Join thousands of campers who have already found their perfect camping experience with findMyCamp.</p>
                 <div class="d-flex justify-content-center gap-3">
                     <a href="/campgrounds/new" class="btn btn-light btn-lg px-4">
                         <i class="fas fa-plus me-2"></i>Add a Campground

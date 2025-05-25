@@ -1,50 +1,272 @@
 <% layout('layouts/boilerplate') %>
-    <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="card border-0 shadow-sm bg-dark-3">
-                    <div class="card-body">
-                        <h1 class="text-center mb-4 text-white">Add New Campground</h1>
-                        <form action="/campgrounds" method="POST" novalidate class="validated-form">
-                            <div class="mb-3">
-                                <label class="form-label text-white-50 mb-2" for="title">Title</label>
-                                <input class="form-control bg-dark text-white border-dark" type="text" name="campground[title]" id="title" required>
-                                <div class="valid-feedback text-white-50">Looks Good!</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-white-50 mb-2" for="location">Location</label>
-                                <input class="form-control bg-dark text-white border-dark" type="text" name="campground[location]" id="location" required>
-                                <div class="valid-feedback text-white-50">Looks Good!</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-white-50 mb-2" for="image">Image URL</label>
-                                <input class="form-control bg-dark text-white border-dark" type="text" name="campground[image]" id="image" required>
-                                <div class="valid-feedback text-white-50">Looks Good!</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-white-50 mb-2" for="price">Price</label>
-                                <div class="input-group mb-3">
-                                    <span class="input-group-text bg-dark border-dark text-white" id="price-label">$</span>
-                                    <input type="text" name='campground[price]' class="form-control bg-dark text-white border-dark" id="price" placeholder="0"
-                                        aria-label="price" aria-describedby="price-label" required>
-                                </div>
-                                <div class="valid-feedback text-white-50">Looks Good!</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label text-white-50 mb-2" for="description">Description</label>
-                                <textarea class="form-control bg-dark text-white border-dark" name="campground[description]" id="description"
-                                    required></textarea>
-                                <div class="valid-feedback text-white-50">Looks Good!</div>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <button class="btn btn-success w-50">Add Campground</button>
-                                <a href="/campgrounds" class="btn btn-danger w-50">Cancel</a>
-                            </div>
-                        </form>
-                    </div>
+
+<style>
+    .form-section {
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .form-section:hover {
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .form-control, .form-select, .form-control:focus, .form-select:focus {
+        background-color: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #e2e8f0;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        background-color: rgba(15, 23, 42, 0.9);
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+    }
+    
+    .form-label {
+        color: #94a3b8;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .input-group-text {
+        background-color: rgba(15, 23, 42, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+    }
+    
+    .btn-submit {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        border: none;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+    
+    .btn-cancel {
+        background: rgba(239, 68, 68, 0.9);
+        border: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancel:hover {
+        background: rgba(220, 38, 38, 0.9);
+        transform: translateY(-2px);
+    }
+    
+    .form-header {
+        position: relative;
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .form-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 3px;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        border-radius: 3px;
+    }
+    
+    .input-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #64748b;
+        pointer-events: none;
+    }
+    
+    .form-floating > label {
+        color: #94a3b8;
+        padding: 1rem 0.75rem;
+    }
+    
+    .form-floating > .form-control:focus ~ label,
+    .form-floating > .form-control:not(:placeholder-shown) ~ label {
+        color: #cbd5e1;
+        transform: scale(0.85) translateY(-0.5rem) translateX(0.15rem);
+    }
+</style>
+
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="form-section p-4 p-md-5">
+                <div class="text-center mb-5">
+                    <h1 class="text-white fw-bold mb-3">Add New Campground</h1>
+                    <p class="text-muted">Share your favorite camping spot with the community</p>
                 </div>
+                
+                <form action="/campgrounds" method="POST" novalidate class="validated-form">
+                    <!-- Title -->
+                    <div class="mb-4 position-relative">
+                        <label for="title" class="form-label">
+                            <i class="fas fa-campground me-2"></i>Campground Name
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-end-0">
+                                <i class="fas fa-signature"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control ps-3" 
+                                   id="title" 
+                                   name="campground[title]" 
+                                   placeholder="Enter campground name"
+                                   required>
+                        </div>
+                        <div class="valid-feedback">
+                            <i class="fas fa-check-circle me-1"></i> Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="fas fa-exclamation-circle me-1"></i> Please provide a campground name.
+                        </div>
+                    </div>
+
+                    <!-- Location -->
+                    <div class="mb-4">
+                        <label for="location" class="form-label">
+                            <i class="fas fa-map-marker-alt me-2"></i>Location
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-end-0">
+                                <i class="fas fa-map-pin"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control ps-3" 
+                                   id="location" 
+                                   name="campground[location]" 
+                                   placeholder="Where is it located?"
+                                   required>
+                        </div>
+                        <div class="valid-feedback">
+                            <i class="fas fa-check-circle me-1"></i> Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="fas fa-exclamation-circle me-1"></i> Please provide a location.
+                        </div>
+                    </div>
+
+                    <!-- Image URL -->
+                    <div class="mb-4">
+                        <label for="image" class="form-label">
+                            <i class="fas fa-image me-2"></i>Image URL
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-end-0">
+                                <i class="fas fa-link"></i>
+                            </span>
+                            <input type="url" 
+                                   class="form-control ps-3" 
+                                   id="image" 
+                                   name="campground[image]" 
+                                   placeholder="https://example.com/image.jpg"
+                                   required>
+                        </div>
+                        <div class="valid-feedback">
+                            <i class="fas fa-check-circle me-1"></i> Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="fas fa-exclamation-circle me-1"></i> Please provide a valid image URL.
+                        </div>
+                    </div>
+
+                    <!-- Price -->
+                    <div class="mb-4">
+                        <label for="price" class="form-label">
+                            <i class="fas fa-tag me-2"></i>Price per night
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-end-0">
+                                <i class="fas fa-dollar-sign"></i>
+                            </span>
+                            <input type="number" 
+                                   class="form-control ps-3" 
+                                   id="price" 
+                                   name="campground[price]" 
+                                   placeholder="0.00"
+                                   step="0.01"
+                                   min="0"
+                                   required>
+                        </div>
+                        <div class="valid-feedback">
+                            <i class="fas fa-check-circle me-1"></i> Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="fas fa-exclamation-circle me-1"></i> Please provide a valid price.
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-5">
+                        <label for="description" class="form-label">
+                            <i class="fas fa-align-left me-2"></i>Description
+                        </label>
+                        <div class="input-group">
+                            <textarea class="form-control ps-3" 
+                                      id="description" 
+                                      name="campground[description]" 
+                                      rows="5" 
+                                      placeholder="Tell us about the campground..."
+                                      required></textarea>
+                        </div>
+                        <div class="valid-feedback">
+                            <i class="fas fa-check-circle me-1"></i> Looks good!
+                        </div>
+                        <div class="invalid-feedback">
+                            <i class="fas fa-exclamation-circle me-1"></i> Please provide a description.
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="d-grid gap-3 d-md-flex justify-content-md-end">
+                        <a href="/campgrounds" class="btn btn-cancel btn-lg px-4 me-md-2">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-submit btn-lg px-4">
+                            <i class="fas fa-plus-circle me-2"></i>Add Campground
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
+</div>
 
-    
+<!-- Add form validation feedback -->
+<script>
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (function () {
+        'use strict'
+
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        var forms = document.querySelectorAll('.validated-form')
+
+        // Loop over them and prevent submission
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>

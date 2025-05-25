@@ -5,43 +5,156 @@
         <div class="col-md-6 col-lg-4">
             <div class="card bg-dark-3 border-0 shadow-sm">
                 <div class="card-body p-5">
-                    <h2 class="card-title text-center mb-4 text-white">Create Account</h2>
+                    <h2 class="text-center mb-4" style="color: #ffffff; font-size: 2rem; font-weight: 700; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Create Account</h2>
                     
-                    <% if (error) { %>
+                    <% if (typeof error === 'string' && error.trim() !== '') { %>
                         <div class="alert alert-danger mb-3" role="alert">
-                            <%= error %>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <div><%= error %></div>
+                            </div>
                         </div>
                     <% } %>
-                    <% if (success) { %>
+                    <% if (typeof success === 'string' && success.trim() !== '') { %>
                         <div class="alert alert-success mb-3" role="alert">
-                            <%= success %>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <div><%= success %></div>
+                            </div>
                         </div>
                     <% } %>
                     
-                    <form action="/register" method="POST">
+                    <form id="registerForm" class="needs-validation" action="/register" method="POST" novalidate>
                         <div class="mb-3">
                             <label for="username" class="form-label text-white-50">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required>
+                            <input type="text" class="form-control" id="username" name="username" required 
+                                   minlength="3" maxlength="30" 
+                                   pattern="^[a-zA-Z0-9_]+$"
+                                   oninput="this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '')">
+                            <div class="invalid-feedback">
+                                Please choose a username (3-30 characters, letters, numbers, and underscores only).
+                            </div>
                         </div>
                         
                         <div class="mb-3">
                             <label for="password" class="form-label text-white-50">Password</label>
-                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password" 
+                                       required minlength="8" 
+                                       pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]+">
+                                <button class="btn btn-outline-secondary toggle-password" type="button" 
+                                        data-bs-toggle="tooltip" title="Show password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text text-white-50">
+                                Password must be at least 8 characters long and contain at least 1 letter and 1 number.
+                            </div>
+                            <div class="invalid-feedback">
+                                Please enter a valid password.
+                            </div>
                         </div>
                         
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="confirmPassword" class="form-label text-white-50">Confirm Password</label>
-                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" required>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="confirmPassword" 
+                                       name="confirmPassword" required>
+                                <button class="btn btn-outline-secondary toggle-password" type="button"
+                                        data-bs-toggle="tooltip" title="Show password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback">
+                                Passwords must match.
+                            </div>
                         </div>
                         
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Create Account</button>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                <span class="button-text">Create Account</span>
+                            </button>
                         </div>
                     </form>
                     
-                    <div class="text-center mt-4">
-                        <p class="text-white-50 mb-0">Already have an account? <a href="/login" class="text-primary">Log in</a></p>
-                    </div>
+                    <script>
+                    // Form validation
+                    (function() {
+                        'use strict';
+                        
+                        // Fetch the form we want to apply custom validation to
+                        const form = document.getElementById('registerForm');
+                        const password = document.getElementById('password');
+                        const confirmPassword = document.getElementById('confirmPassword');
+                        
+                        // Toggle password visibility
+                        document.querySelectorAll('.toggle-password').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const input = this.parentElement.querySelector('input');
+                                const icon = this.querySelector('i');
+                                
+                                if (input.type === 'password') {
+                                    input.type = 'text';
+                                    icon.classList.remove('fa-eye');
+                                    icon.classList.add('fa-eye-slash');
+                                    this.setAttribute('title', 'Hide password');
+                                } else {
+                                    input.type = 'password';
+                                    icon.classList.remove('fa-eye-slash');
+                                    icon.classList.add('fa-eye');
+                                    this.setAttribute('title', 'Show password');
+                                }
+                                
+                                // Update tooltip
+                                const tooltip = bootstrap.Tooltip.getInstance(this);
+                                if (tooltip) {
+                                    tooltip.hide();
+                                    tooltip.setContent({ '.tooltip-inner': this.getAttribute('title') });
+                                    tooltip.show();
+                                }
+                            });
+                        });
+                        
+                        // Custom validation for password match
+                        function validatePasswordMatch() {
+                            if (password.value !== confirmPassword.value) {
+                                confirmPassword.setCustomValidity('Passwords must match');
+                            } else {
+                                confirmPassword.setCustomValidity('');
+                            }
+                        }
+                        
+                        // Add event listeners
+                        password.addEventListener('input', validatePasswordMatch);
+                        confirmPassword.addEventListener('input', validatePasswordMatch);
+                        
+                        // Form submission
+                        form.addEventListener('submit', function(event) {
+                            if (!form.checkValidity()) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            } else {
+                                // Show loading state
+                                const button = form.querySelector('button[type="submit"]');
+                                const spinner = button.querySelector('.spinner-border');
+                                const buttonText = button.querySelector('.button-text');
+                                
+                                button.disabled = true;
+                                spinner.classList.remove('d-none');
+                                buttonText.textContent = 'Creating Account...';
+                            }
+                            
+                            form.classList.add('was-validated');
+                        }, false);
+                        
+                        // Initialize tooltips
+                        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                        tooltipTriggerList.map(function (tooltipTriggerEl) {
+                            return new bootstrap.Tooltip(tooltipTriggerEl);
+                        });
+                    })();
+                    </script>
                     
                     <div class="text-center mt-4">
                         <p class="text-white-50 mb-0">Already have an account? <a href="/login" class="text-primary">Log in</a></p>

@@ -5,9 +5,12 @@ const User = require('../models/user');
 
 // Login page
 router.get('/login', (req, res) => {
+    if (req.isAuthenticated()) {
+        return res.redirect('/campgrounds');
+    }
     res.render('auth/login', { 
-        error: req.flash('error')[0],
-        success: req.flash('success')[0]
+        error: req.flash('error'),
+        success: req.flash('success')
     });
 });
 
@@ -20,9 +23,12 @@ router.post('/login', passport.authenticate('local', {
 
 // Register page
 router.get('/register', (req, res) => {
+    if (req.isAuthenticated()) {
+        return res.redirect('/campgrounds');
+    }
     res.render('auth/register', { 
-        error: req.flash('error')[0],
-        success: req.flash('success')[0]
+        error: req.flash('error'),
+        success: req.flash('success')
     });
 });
 
@@ -52,40 +58,11 @@ router.post('/register', async (req, res) => {
                 req.flash('error', 'Error logging in after registration');
                 return res.redirect('/login');
             }
-            req.flash('success', 'Welcome to YelpCamp!');
+            req.flash('success', 'Welcome to findMyCamp!');
             res.redirect('/campgrounds');
         });
     } catch (err) {
         req.flash('error', 'Error creating account: ' + err.message);
-        res.redirect('/register');
-    }
-});
-
-// Login form submission
-router.post('/login', passport.authenticate('local', {
-    successRedirect: '/campgrounds',
-    failureRedirect: '/login',
-    failureFlash: true
-}));
-
-// Register page
-router.get('/register', (req, res) => {
-    res.render('auth/register');
-});
-
-// Register form submission
-router.post('/register', async (req, res) => {
-    try {
-        const { username, password } = req.body;
-        const user = new User({ username });
-        const registeredUser = await User.register(user, password);
-        req.login(registeredUser, err => {
-            if (err) return res.redirect('/register');
-            req.flash('success', 'Welcome to YelpCamp!');
-            res.redirect('/campgrounds');
-        });
-    } catch (err) {
-        req.flash('error', err.message);
         res.redirect('/register');
     }
 });

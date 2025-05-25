@@ -16,11 +16,22 @@ const flash = require('connect-flash')
 const passportLocalMongoose = require('passport-local-mongoose')
 
 // Session configuration
-app.use(session({
-    secret: 'yelpcamp_secret',
+const sessionConfig = {
+    secret: process.env.SESSION_SECRET || 'fallback_secret_key',
     resave: false,
-    saveUninitialized: true
-}));
+    saveUninitialized: true,
+    cookie: {
+        httpOnly: true,
+        // secure: process.env.NODE_ENV === 'production',
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
+        maxAge: 1000 * 60 * 60 * 24 * 7
+    }
+};
+
+app.use(session(sessionConfig));
+
+// Flash messages
+app.use(flash());
 
 // Passport configuration
 app.use(passport.initialize());
@@ -30,28 +41,22 @@ passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-// Flash messages
-app.use(flash());
-
-// Add user to locals
-app.use((req, res, next) => {
-    res.locals.currentUser = req.user;
-    res.locals.success = req.flash('success');
-    res.locals.error = req.flash('error');
-    next();
-});
-
 // Middleware
-app.use(express.urlencoded({ extended: true }))
-app.use(express.json())
-app.use(methodOverride('_method'))
-app.use(express.static(path.join(__dirname, 'public')))
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(methodOverride('_method'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Set variables for all views
 app.use((req, res, next) => {
     // Set current path for active link highlighting
     res.locals.currentPath = req.path;
     res.locals.currentPage = '';
+    // Set current user for all views
+    res.locals.currentUser = req.user;
+    // Flash messages
+    res.locals.success = req.flash('success');
+    res.locals.error = req.flash('error');
     next();
 });
 
@@ -70,8 +75,12 @@ app.use('/campgrounds', campgroundRoutes);
 
 main().catch(err => console.log(err));
 
+// Load environment variables
+require('dotenv').config();
+
 async function main() {
-    await mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp');
+    const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/yelp-camp';
+    await mongoose.connect(dbUrl);
     console.log('MONGO CONNECTION OPEN')
 }
 
@@ -82,11 +91,12 @@ app.get('/', (req, res) => {
 });
 
 app.get('/campgrounds', catchAsync(async (req, res) => {
-    const { search } = req.query;
+    const { search, sort } = req.query;
     let query = {};
+    let sortOption = {};
     
+    // Handle search
     if (search) {
-        // Search in title, location, or description using regex
         query = {
             $or: [
                 { title: { $regex: search, $options: 'i' } },
@@ -96,10 +106,40 @@ app.get('/campgrounds', catchAsync(async (req, res) => {
         };
     }
     
-    const campgrounds = await Campground.find(query);
+    // Handle sorting
+    if (sort) {
+        switch (sort) {
+            case 'price_asc':
+                sortOption = { price: 1 }; // Sort by price low to high
+                break;
+            case 'price_desc':
+                sortOption = { price: -1 }; // Sort by price high to low
+                break;
+            case 'rating_desc':
+                sortOption = { rating: -1 }; // Sort by rating high to low
+                break;
+            case 'rating_asc':
+                sortOption = { rating: 1 }; // Sort by rating low to high
+                break;
+            case 'newest':
+                sortOption = { _id: -1 }; // Sort by newest first
+                break;
+            case 'oldest':
+                sortOption = { _id: 1 }; // Sort by oldest first
+                break;
+            default:
+                sortOption = { _id: -1 }; // Default sort by newest
+        }
+    } else {
+        sortOption = { _id: -1 }; // Default sort by newest if no sort specified
+    }
+    
+    const campgrounds = await Campground.find(query).sort(sortOption);
     res.render('campgrounds/index', { 
-        campgrounds,
-        searchQuery: search || ''
+        campgrounds, 
+        searchQuery: search,
+        currentSort: sort || 'newest',
+        req: req // Pass the request object to the view
     });
 }))
 
@@ -161,6 +201,7 @@ app.use((err, req, res, next) => {
         err: process.env.NODE_ENV === 'development' ? err : null
     });
 });
-app.listen(3000,()=>{
-    console.log('LISTENING AT 3000')
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+    console.log(`Serving on port ${port}`)
 })

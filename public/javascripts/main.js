@@ -12,32 +12,47 @@ document.addEventListener('DOMContentLoaded', function() {
         return new bootstrap.Popover(popoverTriggerEl);
     });
 
-    // Save button functionality
-    document.querySelectorAll('.btn-save').forEach(button => {
-        button.addEventListener('click', function(e) {
+    // Favorite button functionality
+    document.querySelectorAll('.favorite-form').forEach(form => {
+        form.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const campgroundId = this.dataset.campgroundId;
-            const isSaved = this.classList.contains('active');
+            const button = this.querySelector('.favorite-btn');
+            const icon = button.querySelector('i');
+            const isSaved = icon.classList.contains('fas');
+            const url = isSaved 
+                ? `/campgrounds/${button.dataset.campgroundId}/unsave`
+                : `/campgrounds/${button.dataset.campgroundId}/save`;
             
-            // Toggle active state
-            this.classList.toggle('active');
-            
-            // Update icon and text
-            const icon = this.querySelector('i');
-            const text = this.querySelector('.btn-text');
-            
-            if (isSaved) {
-                icon.classList.remove('fas');
-                icon.classList.add('far');
-                text.textContent = ' Save';
-                // Here you would typically make an API call to unsave
-                console.log('Unsaved campground', campgroundId);
-            } else {
-                icon.classList.remove('far');
-                icon.classList.add('fas');
-                text.textContent = ' Saved';
-                // Here you would typically make an API call to save
-                console.log('Saved campground', campgroundId);
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (response.ok) {
+                    // Toggle the heart icon
+                    icon.classList.toggle('far');
+                    icon.classList.toggle('fas');
+                    
+                    // Update tooltip text
+                    const newTitle = isSaved ? 'Add to favorites' : 'Remove from favorites';
+                    const tooltip = bootstrap.Tooltip.getInstance(button);
+                    if (tooltip) {
+                        button.setAttribute('title', newTitle);
+                        tooltip.setContent({ '.tooltip-inner': newTitle });
+                    }
+                } else {
+                    throw new Error('Failed to update favorite status');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                // Show error message to user
+                const toast = new bootstrap.Toast(document.getElementById('errorToast'));
+                const toastBody = document.querySelector('#errorToast .toast-body');
+                toastBody.textContent = 'Failed to update favorite status. Please try again.';
+                toast.show();
             }
         });
     });
