@@ -1,18 +1,14 @@
 const mongoose = require('mongoose');
 const Campground = require('../models/campground');
+const { connectDB, closeConnection } = require('../config/database');
 
-// Connect to MongoDB
-mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
-
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', async () => {
-    console.log('Connected to MongoDB');
-    
+// Main function to update campgrounds
+const updateCampgrounds = async () => {
     try {
+        // Connect to MongoDB using centralized configuration
+        await connectDB();
+        console.log('Connected to MongoDB');
+        
         // Find all campgrounds
         const campgrounds = await Campground.find({});
         let updatedCount = 0;
@@ -71,11 +67,21 @@ db.once('open', async () => {
         console.log(`\nMigration complete!`);
         console.log(`Total campgrounds checked: ${campgrounds.length}`);
         console.log(`Successfully updated: ${updatedCount}`);
-        console.log(`Errors: ${errorCount}`);
-        
-        process.exit(0);
+        if (errorCount > 0) {
+            console.warn(`\n⚠️  Completed with ${errorCount} errors`);
+        } else {
+            console.log('\n✅ Update completed successfully!');
+        }
     } catch (err) {
-        console.error('Error in migration:', err);
-        process.exit(1);
+        console.error('❌ Error updating campgrounds:', err);
+    } finally {
+        // Close the database connection
+        await closeConnection();
     }
+};
+
+// Run the update
+updateCampgrounds().catch(err => {
+    console.error('Unhandled error in updateCampgrounds:', err);
+    process.exit(1);
 });

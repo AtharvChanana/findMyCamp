@@ -50,10 +50,6 @@ const userSchema = new Schema({
     toObject: { virtuals: true }
 });
 
-// Add indexes for better query performance
-userSchema.index({ username: 1 });
-userSchema.index({ email: 1 });
-
 // Plugin configuration with error handling
 userSchema.plugin(passportLocalMongoose, {
     usernameField: 'username',

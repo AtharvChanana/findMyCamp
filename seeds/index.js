@@ -1,14 +1,19 @@
-const mongoose = require('mongoose')
-const cities = require('./cities')
-const Campground = require('../models/campground')
-const {places,descriptors} = require('./seedHelpers')
+const mongoose = require('mongoose');
+const cities = require('./cities');
+const Campground = require('../models/campground');
+const { connectDB, closeConnection } = require('../config/database');
+const { places, descriptors } = require('./seedHelpers');
 
-main().catch(err => console.log(err));
-
-async function main() {
-    await mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp');
-    console.log('MONGO CONNECTION OPEN')
-}
+// Set up MongoDB connection
+const init = async () => {
+    try {
+        await connectDB();
+        console.log('Connected to MongoDB');
+    } catch (error) {
+        console.error('Failed to connect to MongoDB:', error);
+        process.exit(1);
+    }
+};
 
 const sample = array => array[Math.floor(Math.random() * array.length)]
 const seedDB = async ()=>{
@@ -26,6 +31,18 @@ const seedDB = async ()=>{
         await camp.save()
     }
 }
-seedDB().then(()=>{
-    mongoose.connection.close()
-})
+// Seed the database and close the connection when done
+const runSeeds = async () => {
+    try {
+        await init();
+        await seedDB();
+        console.log('Database seeded successfully!');
+    } catch (error) {
+        console.error('Error seeding database:', error);
+    } finally {
+        await closeConnection();
+        process.exit(0);
+    }
+};
+
+runSeeds();

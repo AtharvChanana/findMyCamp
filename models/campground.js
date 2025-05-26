@@ -1,12 +1,5 @@
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema
-
-main().catch(err => console.log(err));
-
-async function main() {
-    await mongoose.connect('mongodb://127.0.0.1:27017/yelp-camp');
-    console.log('MONGO CONNECTION OPEN')
-}
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
 // Function to generate a random number between min and max (inclusive)
 const getRandomNumber = (min, max) => {
