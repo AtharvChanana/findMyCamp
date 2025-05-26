@@ -31,10 +31,19 @@ const port = process.env.PORT || 3000;
 // Set strict query mode
 mongoose.set('strictQuery', false);
 
-// Configure session store
+// Configure session store with MongoDB connection options
 const sessionStore = MongoStore.create({
     mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp',
-    touchAfter: 24 * 60 * 60,
+    mongoOptions: {
+        serverSelectionTimeoutMS: 30000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 30000,
+        ssl: process.env.NODE_ENV === 'production',
+        sslValidate: true,
+        retryWrites: true,
+        w: 'majority'
+    },
+    touchAfter: 24 * 60 * 60, // 1 day - time period in seconds
     crypto: { 
         secret: process.env.SESSION_SECRET || 'fallback_secret_key' 
     }

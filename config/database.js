@@ -6,6 +6,17 @@ const mongoConfig = {
     socketTimeoutMS: 45000,           // 45 seconds
     connectTimeoutMS: 30000,          // 30 seconds
     retryWrites: true,
+    w: 'majority',
+    // Add SSL/TLS options
+    ssl: true,
+    sslValidate: true,
+    // For Atlas M0 (Free Tier) comment this line, for M10+ uncomment
+    // tlsAllowInvalidCertificates: false,
+    // tlsAllowInvalidHostnames: false,
+    // tlsInsecure: false,
+    // Enable retryWrites for transactions
+    retryWrites: true,
+    // Set the write concern
     w: 'majority'
 };
 
@@ -45,6 +56,16 @@ const connectDB = async (dbUrl = null) => {
         console.log('ℹ️  Using existing database connection');
         return mongoose.connection;
     }
+    
+    // Get the MongoDB URI from environment or use default
+    const MONGODB_URI = dbUrl || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
+    
+    // Check if we're connecting to Atlas
+    const isAtlas = MONGODB_URI.includes('mongodb+srv://');
+    
+    // Log connection attempt
+    console.log(`🌐 Connecting to ${isAtlas ? 'MongoDB Atlas' : 'local MongoDB'}...`);
+    console.log(`   - URI: ${MONGODB_URI.split('@').pop()}`); // Don't log credentials
 
     // If already trying to connect, wait for the connection
     if (isConnecting) {
