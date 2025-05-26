@@ -31,8 +31,26 @@ const port = process.env.PORT || 3000;
 // Set strict query mode
 mongoose.set('strictQuery', false);
 
-// Session configuration will be initialized after database connection is established
-let sessionConfig;
+// Session configuration
+const sessionConfig = {
+    name: 'findMyCampSession',
+    secret: process.env.SESSION_SECRET || 'fallback_secret_key',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp',
+        touchAfter: 24 * 60 * 60,
+        crypto: { 
+            secret: process.env.SESSION_SECRET || 'fallback_secret_key' 
+        }
+    }),
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 1000 * 60 * 60 * 24 * 7,
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    }
+};
 
 // Flash messages
 app.use(flash());
@@ -40,25 +58,14 @@ app.use(flash());
 // Passport configuration
 app.use(passport.initialize());
 app.use(passport.session());
-
 passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
-// Middleware
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(methodOverride('_method'));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Set variables for all views
+// Make user and currentPath available to all templates
 app.use((req, res, next) => {
-    // Set current path for active link highlighting
-    res.locals.currentPath = req.path;
-    res.locals.currentPage = '';
-    // Set current user for all views
     res.locals.currentUser = req.user;
-    // Flash messages
+    res.locals.currentPath = req.path;
     res.locals.success = req.flash('success');
     res.locals.error = req.flash('error');
     next();
@@ -111,12 +118,6 @@ const startServer = async () => {
             }
         };
         
-        // Set view engine and static files
-        app.engine('ejs', ejsMate);
-        app.set('view engine', 'ejs');
-        app.set('views', path.join(__dirname, 'views'));
-        app.use(express.static(path.join(__dirname, 'public')));
-        
         // Middleware
         app.use(express.urlencoded({ extended: true }));
         app.use(methodOverride('_method'));
@@ -164,11 +165,31 @@ const startServer = async () => {
             next(new ExpressError('Page Not Found', 404));
         });
         
-        // Error handler
+        // Error handling middleware
         app.use((err, req, res, next) => {
-            const { statusCode = 500 } = err;
-            if (!err.message) err.message = 'Something went wrong!';
-            res.status(statusCode).render('error', { err });
+            console.error('Error:', err);
+            const statusCode = err.statusCode || 500;
+            const message = err.message || 'Something went wrong!';
+            
+            if (req.accepts('html')) {
+                // Render error page for HTML responses
+                res.status(statusCode).render('error', { 
+                    statusCode,
+                    message,
+                    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+                });
+            } else if (req.accepts('json')) {
+                // Send JSON response for API requests
+                res.status(statusCode).json({ 
+                    error: {
+                        status: statusCode,
+                        message: message
+                    }
+                });
+            } else {
+                // Default to plain text
+                res.status(statusCode).type('txt').send(`${statusCode}: ${message}`);
+            }
         });
         
         // Start server
