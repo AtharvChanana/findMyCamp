@@ -117,7 +117,7 @@ userSchema.methods.updateLastLogin = async function() {
 };
 
 // Add a method to check if user is active
-userSchema.methods.isActive = function() {
+userSchema.methods.checkIfActive = function() {
     return this.isActive;
 };
 
