@@ -82,34 +82,41 @@ const campgroundRoutes = require('./routes/campgrounds');
 app.use('/', authRoutes);
 app.use('/campgrounds', campgroundRoutes);
 
-main().catch(err => console.log(err));
-
 // Database connection
 mongoose.set('strictQuery', false);
 
-async function main() {
-    try {
-        // Get MongoDB URI from environment or use Render's database connection
-        const dbUrl = process.env.MONGODB_URI || 
-                     process.env.RENDER_DATABASE_URL || 
-                     'mongodb://127.0.0.1:27017/findMyCamp';
-        
-        console.log('Connecting to MongoDB...');
-        console.log('Using MongoDB URL:', dbUrl);
-        
-        await mongoose.connect(dbUrl, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000
-        });
-        
-        console.log('MongoDB connected successfully');
-    } catch (err) {
-        console.error('MongoDB connection error:', err);
-        console.error('Connection string used:', process.env.MONGODB_URI || process.env.RENDER_DATABASE_URL || 'Local default');
-        process.exit(1);
-    }
+// Check if mongoose is already connected
+if (mongoose.connection.readyState === 0) { // 0 = disconnected
+    (async function connectToDatabase() {
+        try {
+            // Get MongoDB URI from environment or use Render's database connection
+            const dbUrl = process.env.MONGODB_URI || 
+                         process.env.RENDER_DATABASE_URL || 
+                         'mongodb://127.0.0.1:27017/findMyCamp';
+            
+            console.log('Connecting to MongoDB...');
+            console.log('Using MongoDB URL:', dbUrl.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')); // Hide credentials in logs
+            
+            await mongoose.connect(dbUrl, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                serverSelectionTimeoutMS: 10000,
+                socketTimeoutMS: 45000
+            });
+            
+            console.log('MongoDB connected successfully');
+        } catch (err) {
+            console.error('MongoDB connection error:', err);
+            console.error('Connection string used:', process.env.MONGODB_URI ? 'Using MONGODB_URI' : 
+                         process.env.RENDER_DATABASE_URL ? 'Using RENDER_DATABASE_URL' : 'Using local default');
+            // Don't exit in production to allow for auto-recovery
+            if (process.env.NODE_ENV !== 'production') {
+                process.exit(1);
+            }
+        }
+    })();
+} else {
+    console.log('MongoDB already connected');
 }
 
 // Home route
