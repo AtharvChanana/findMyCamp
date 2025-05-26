@@ -31,19 +31,22 @@ const port = process.env.PORT || 3000;
 // Set strict query mode
 mongoose.set('strictQuery', false);
 
+// Configure session store
+const sessionStore = MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp',
+    touchAfter: 24 * 60 * 60,
+    crypto: { 
+        secret: process.env.SESSION_SECRET || 'fallback_secret_key' 
+    }
+});
+
 // Session configuration
 const sessionConfig = {
     name: 'findMyCampSession',
     secret: process.env.SESSION_SECRET || 'fallback_secret_key',
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-        mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp',
-        touchAfter: 24 * 60 * 60,
-        crypto: { 
-            secret: process.env.SESSION_SECRET || 'fallback_secret_key' 
-        }
-    }),
+    store: sessionStore,
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -52,12 +55,15 @@ const sessionConfig = {
     }
 };
 
-// Flash messages
+// Initialize session middleware
+app.use(session(sessionConfig));
 app.use(flash());
 
-// Passport configuration
+// Initialize Passport and session
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Configure Passport
 passport.use(new LocalStrategy(User.authenticate()));
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
@@ -90,7 +96,7 @@ const startServer = async () => {
         // Connect to MongoDB
         await connectDB();
         
-        // Initialize session store after database connection is established
+        // Initialize session store after database connection
         const store = MongoStore.create({
             mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp',
             touchAfter: 24 * 60 * 60, // 1 day
@@ -105,38 +111,35 @@ const startServer = async () => {
 
         // Configure session
         sessionConfig = {
-            store,
             name: 'findMyCampSession',
             secret: process.env.SESSION_SECRET || 'fallback_secret_key',
             resave: false,
             saveUninitialized: false,
+            store: sessionStore,
             cookie: {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
-                maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+                maxAge: 1000 * 60 * 60 * 24 * 7,
                 sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
             }
         };
-        
-        // Middleware
-        app.use(express.urlencoded({ extended: true }));
-        app.use(methodOverride('_method'));
-        
-        // Configure session middleware
+
         app.use(session(sessionConfig));
         app.use(flash());
         
-        // Passport configuration
+        // Initialize Passport and session
         app.use(passport.initialize());
         app.use(passport.session());
         
+        // Configure Passport
         passport.use(new LocalStrategy(User.authenticate()));
         passport.serializeUser(User.serializeUser());
         passport.deserializeUser(User.deserializeUser());
         
-        // Flash messages middleware
+        // Make user and currentPath available to all templates
         app.use((req, res, next) => {
             res.locals.currentUser = req.user;
+            res.locals.currentPath = req.path;
             res.locals.success = req.flash('success');
             res.locals.error = req.flash('error');
             next();
