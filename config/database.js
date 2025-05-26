@@ -15,7 +15,10 @@ const mongoConfig = {
 if (process.env.NODE_ENV === 'production') {
     Object.assign(mongoConfig, {
         tls: true,
-        tlsAllowInvalidHostnames: false
+        tlsCAFile: '/etc/ssl/certs/ca-certificates.crt',
+        tlsAllowInvalidHostnames: false,
+        minTlsVersion: 'TLSv1.2',
+        maxTlsVersion: 'TLSv1.3'
     });
 }
 

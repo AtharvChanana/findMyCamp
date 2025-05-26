@@ -39,13 +39,14 @@ const sessionStore = MongoStore.create({
         socketTimeoutMS: 45000,
         connectTimeoutMS: 30000,
         tls: process.env.NODE_ENV === 'production',
+        tlsCAFile: '/etc/ssl/certs/ca-certificates.crt',
         tlsAllowInvalidHostnames: false,
+        minTlsVersion: 'TLSv1.2',
+        maxTlsVersion: 'TLSv1.3',
         retryWrites: true,
         w: 'majority',
         maxPoolSize: 10,
-        minPoolSize: 5,
-        useNewUrlParser: true,
-        useUnifiedTopology: true
+        minPoolSize: 5
     },
     touchAfter: 24 * 60 * 60, // 1 day - time period in seconds
     crypto: { 
