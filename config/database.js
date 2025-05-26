@@ -6,19 +6,16 @@ const mongoConfig = {
     socketTimeoutMS: 45000,           // 45 seconds
     connectTimeoutMS: 30000,          // 30 seconds
     retryWrites: true,
-    w: 'majority',
-    // Add SSL/TLS options
-    ssl: true,
-    sslValidate: true,
-    // For Atlas M0 (Free Tier) comment this line, for M10+ uncomment
-    // tlsAllowInvalidCertificates: false,
-    // tlsAllowInvalidHostnames: false,
-    // tlsInsecure: false,
-    // Enable retryWrites for transactions
-    retryWrites: true,
-    // Set the write concern
     w: 'majority'
 };
+
+// Add SSL options for production
+if (process.env.NODE_ENV === 'production') {
+    Object.assign(mongoConfig, {
+        ssl: true,
+        sslValidate: true
+    });
+}
 
 // Connection state
 let isConnecting = false;
@@ -86,10 +83,8 @@ const connectDB = async (dbUrl = null) => {
 
     // Start a new connection
     try {
-        const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
         console.log('🔗 Establishing new MongoDB connection...');
-        
-        await mongoose.connect(dbUrl, mongoConfig);
+        await mongoose.connect(MONGODB_URI, mongoConfig);
         return mongoose.connection;
     } catch (error) {
         console.error('❌ MongoDB connection error:', error.message);
