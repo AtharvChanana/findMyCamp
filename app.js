@@ -1,3 +1,6 @@
+// Load environment variables first
+require('dotenv').config();
+
 const express = require('express')
 const app = express()
 const path = require('path')
@@ -75,13 +78,21 @@ app.use('/campgrounds', campgroundRoutes);
 
 main().catch(err => console.log(err));
 
-// Load environment variables
-require('dotenv').config();
-
 async function main() {
-    const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
-    await mongoose.connect(dbUrl);
-    console.log('MONGO CONNECTION OPEN')
+    try {
+        const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
+        console.log('Connecting to MongoDB...');
+        console.log('MongoDB URI:', dbUrl);
+        await mongoose.connect(dbUrl, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 5000
+        });
+        console.log('MongoDB connected successfully');
+    } catch (err) {
+        console.error('MongoDB connection error:', err);
+        process.exit(1);
+    }
 }
 
 // Home route
