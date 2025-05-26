@@ -1,16 +1,16 @@
 {
-  "name": "yelpcamp",
+  "name": "findmycamp",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "FindMyCamp - A campground discovery platform",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "dev": "nodemon app.js"
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "connect-flash": "^0.1.1",
     "dotenv": "^16.5.0",

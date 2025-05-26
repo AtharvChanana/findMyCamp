@@ -5,19 +5,9 @@ services:
     buildCommand: npm install
     startCommand: npm start
     envVars:
-      - key: MONGODB_URI
-        fromDatabase:
-          name: findmycamp-db
-          property: connectionString
-      - key: SESSION_SECRET
-        generateValue: true
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
     plan: free
-    healthCheckPath: /
-
 databases:
   - name: findmycamp-db
     databaseName: findmycamp

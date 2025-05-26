@@ -89,7 +89,11 @@ mongoose.set('strictQuery', false);
 
 async function main() {
     try {
-        const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
+        // Get MongoDB URI from environment or use Render's database connection
+        const dbUrl = process.env.MONGODB_URI || 
+                     process.env.RENDER_DATABASE_URL || 
+                     'mongodb://127.0.0.1:27017/findMyCamp';
+        
         console.log('Connecting to MongoDB...');
         console.log('Using MongoDB URL:', dbUrl);
         
@@ -103,6 +107,7 @@ async function main() {
         console.log('MongoDB connected successfully');
     } catch (err) {
         console.error('MongoDB connection error:', err);
+        console.error('Connection string used:', process.env.MONGODB_URI || process.env.RENDER_DATABASE_URL || 'Local default');
         process.exit(1);
     }
 }
