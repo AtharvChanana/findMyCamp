@@ -91,13 +91,13 @@ async function main() {
     try {
         const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
         console.log('Connecting to MongoDB...');
+        console.log('Using MongoDB URL:', dbUrl);
         
         await mongoose.connect(dbUrl, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
             serverSelectionTimeoutMS: 5000,
-            socketTimeoutMS: 45000,
-            family: 4 // Use IPv4, skip trying IPv6
+            socketTimeoutMS: 45000
         });
         
         console.log('MongoDB connected successfully');
