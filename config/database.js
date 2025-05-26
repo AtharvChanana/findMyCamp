@@ -14,12 +14,8 @@ const mongoConfig = {
 // Add SSL/TLS options for production
 if (process.env.NODE_ENV === 'production') {
     Object.assign(mongoConfig, {
-        ssl: true,
         tls: true,
-        tlsInsecure: false,
-        tlsAllowInvalidCertificates: false,
-        tlsAllowInvalidHostnames: false,
-        directConnection: false
+        tlsAllowInvalidHostnames: false
     });
 }
 
@@ -95,9 +91,7 @@ const connectDB = async (dbUrl = null) => {
         if (isAtlas) {
             Object.assign(mongoConfig, {
                 useNewUrlParser: true,
-                useUnifiedTopology: true,
-                retryWrites: true,
-                w: 'majority'
+                useUnifiedTopology: true
             });
         }
         
