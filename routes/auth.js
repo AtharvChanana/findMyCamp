@@ -161,7 +161,7 @@ router.get('/register', (req, res) => {
         success: req.flash('success'),
         title: 'Register | FindMyCamp',
         page: 'register',
-        user: null
+        user: { username: '', email: '' } // Initialize with empty user object
     });
 });
 
@@ -197,7 +197,10 @@ router.post('/register', validateRegister, async (req, res, next) => {
             return res.status(400).render('auth/register', {
                 title: 'Register | FindMyCamp',
                 error: errors.array()[0].msg,
-                user: { username, email },
+                user: { 
+                    username: username || '', 
+                    email: email || '' 
+                },
                 page: 'register'
             });
         }

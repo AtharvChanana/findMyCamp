@@ -28,10 +28,10 @@
                         <div class="mb-3">
                             <label for="username" class="form-label text-white-50">Username</label>
                             <input type="text" 
-                                   class="form-control <%= typeof user !== 'undefined' && user.username === '' ? 'is-invalid' : '' %>" 
+                                   class="form-control <%= (user && user.username === '') ? 'is-invalid' : '' %>" 
                                    id="username" 
                                    name="username" 
-                                   value="<%= typeof user !== 'undefined' ? user.username : '' %>"
+                                   value="<%= (user && user.username) ? user.username : '' %>"
                                    required 
                                    minlength="3" 
                                    maxlength="30" 
@@ -45,10 +45,10 @@
                         <div class="mb-3">
                             <label for="email" class="form-label text-white-50">Email address</label>
                             <input type="email" 
-                                   class="form-control <%= typeof user !== 'undefined' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email) ? 'is-invalid' : '' %>" 
+                                   class="form-control <%= (user && user.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) ? 'is-invalid' : '' %>" 
                                    id="email" 
                                    name="email" 
-                                   value="<%= typeof user !== 'undefined' ? user.email : '' %>"
+                                   value="<%= (user && user.email) ? user.email : '' %>"
                                    required
                                    pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
                             <div class="invalid-feedback">
