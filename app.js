@@ -31,35 +31,8 @@ const port = process.env.PORT || 3000;
 // Set strict query mode
 mongoose.set('strictQuery', false);
 
-// Session configuration with MongoDB session store
-const store = MongoStore.create({
-    client: dbConnection.getClient(),
-    touchAfter: 24 * 60 * 60, // 1 day
-    crypto: {
-        secret: process.env.SESSION_SECRET || 'fallback_secret_key'
-    }
-});
-
-store.on('error', function(e) {
-    console.error('Session store error:', e);
-});
-
-const sessionConfig = {
-    store,
-    name: 'findMyCampSession',
-    secret: process.env.SESSION_SECRET || 'fallback_secret_key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,  // 1 week
-        maxAge: 1000 * 60 * 60 * 24 * 7,               // 1 week
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-    }
-};
-
-app.use(session(sessionConfig));
+// Session configuration will be initialized after database connection is established
+let sessionConfig;
 
 // Flash messages
 app.use(flash());
@@ -110,6 +83,34 @@ const startServer = async () => {
         // Connect to MongoDB
         await connectDB();
         
+        // Initialize session store after database connection is established
+        const store = MongoStore.create({
+            mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp',
+            touchAfter: 24 * 60 * 60, // 1 day
+            crypto: {
+                secret: process.env.SESSION_SECRET || 'fallback_secret_key'
+            }
+        });
+
+        store.on('error', function(e) {
+            console.error('Session store error:', e);
+        });
+
+        // Configure session
+        sessionConfig = {
+            store,
+            name: 'findMyCampSession',
+            secret: process.env.SESSION_SECRET || 'fallback_secret_key',
+            resave: false,
+            saveUninitialized: false,
+            cookie: {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+            }
+        };
+        
         // Set view engine and static files
         app.engine('ejs', ejsMate);
         app.set('view engine', 'ejs');
@@ -120,7 +121,7 @@ const startServer = async () => {
         app.use(express.urlencoded({ extended: true }));
         app.use(methodOverride('_method'));
         
-        // Configure session
+        // Configure session middleware
         app.use(session(sessionConfig));
         app.use(flash());
         
