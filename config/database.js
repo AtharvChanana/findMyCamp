@@ -6,14 +6,20 @@ const mongoConfig = {
     socketTimeoutMS: 45000,           // 45 seconds
     connectTimeoutMS: 30000,          // 30 seconds
     retryWrites: true,
-    w: 'majority'
+    w: 'majority',
+    maxPoolSize: 10,
+    minPoolSize: 5
 };
 
 // Add SSL/TLS options for production
 if (process.env.NODE_ENV === 'production') {
     Object.assign(mongoConfig, {
         ssl: true,
-        tls: true
+        tls: true,
+        tlsInsecure: false,
+        tlsAllowInvalidCertificates: false,
+        tlsAllowInvalidHostnames: false,
+        directConnection: false
     });
 }
 
@@ -84,6 +90,17 @@ const connectDB = async (dbUrl = null) => {
     // Start a new connection
     try {
         console.log('🔗 Establishing new MongoDB connection...');
+        
+        // Add specific options for Atlas connections
+        if (isAtlas) {
+            Object.assign(mongoConfig, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+                retryWrites: true,
+                w: 'majority'
+            });
+        }
+        
         await mongoose.connect(MONGODB_URI, mongoConfig);
         return mongoose.connection;
     } catch (error) {

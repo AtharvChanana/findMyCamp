@@ -40,8 +40,15 @@ const sessionStore = MongoStore.create({
         connectTimeoutMS: 30000,
         ssl: process.env.NODE_ENV === 'production',
         tls: process.env.NODE_ENV === 'production',
+        tlsInsecure: false,
+        tlsAllowInvalidCertificates: false,
+        tlsAllowInvalidHostnames: false,
         retryWrites: true,
-        w: 'majority'
+        w: 'majority',
+        maxPoolSize: 10,
+        minPoolSize: 5,
+        useNewUrlParser: true,
+        useUnifiedTopology: true
     },
     touchAfter: 24 * 60 * 60, // 1 day - time period in seconds
     crypto: { 
