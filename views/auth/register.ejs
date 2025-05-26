@@ -27,12 +27,32 @@
                     <form id="registerForm" class="needs-validation" action="/register" method="POST" novalidate>
                         <div class="mb-3">
                             <label for="username" class="form-label text-white-50">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required 
-                                   minlength="3" maxlength="30" 
-                                   pattern="^[a-zA-Z0-9_]+$"
+                            <input type="text" 
+                                   class="form-control <%= typeof user !== 'undefined' && user.username === '' ? 'is-invalid' : '' %>" 
+                                   id="username" 
+                                   name="username" 
+                                   value="<%= typeof user !== 'undefined' ? user.username : '' %>"
+                                   required 
+                                   minlength="3" 
+                                   maxlength="30" 
+                                   pattern="^[a-zA-Z0-9_]+"
                                    oninput="this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '')">
                             <div class="invalid-feedback">
                                 Please choose a username (3-30 characters, letters, numbers, and underscores only).
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label text-white-50">Email address</label>
+                            <input type="email" 
+                                   class="form-control <%= typeof user !== 'undefined' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email) ? 'is-invalid' : '' %>" 
+                                   id="email" 
+                                   name="email" 
+                                   value="<%= typeof user !== 'undefined' ? user.email : '' %>"
+                                   required
+                                   pattern="[^@\s]+@[^@\s]+\.[^@\s]+">
+                            <div class="invalid-feedback">
+                                Please enter a valid email address.
                             </div>
                         </div>
                         

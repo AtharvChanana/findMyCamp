@@ -26,27 +26,45 @@
                     
                     <form id="loginForm" class="needs-validation" action="/login" method="POST" novalidate>
                         <div class="mb-3">
-                            <label for="username" class="form-label text-white-50">Username</label>
-                            <input type="text" class="form-control" id="username" name="username" required
-                                   minlength="3" maxlength="30"
-                                   pattern="^[a-zA-Z0-9_]+"
-                                   oninput="this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '')">
+                            <label for="username" class="form-label text-white-50">Username or Email</label>
+                            <input type="text" 
+                                   class="form-control <%= typeof error !== 'undefined' ? 'is-invalid' : '' %>" 
+                                   id="username" 
+                                   name="username" 
+                                   value="<%= typeof username !== 'undefined' ? username : '' %>"
+                                   required
+                                   autofocus
+                                   autocomplete="username"
+                                   minlength="3" 
+                                   maxlength="50">
                             <div class="invalid-feedback">
-                                Please enter your username.
+                                <%= typeof error === 'string' && error.includes('username') ? error : 'Please enter your username or email' %>
                             </div>
                         </div>
                         
                         <div class="mb-4">
                             <label for="password" class="form-label text-white-50">Password</label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="password" name="password" required>
-                                <button class="btn btn-outline-secondary toggle-password" type="button"
-                                        data-bs-toggle="tooltip" title="Show password">
+                                <input type="password" 
+                                       class="form-control <%= typeof error !== 'undefined' && error.includes('password') ? 'is-invalid' : '' %>" 
+                                       id="password" 
+                                       name="password" 
+                                       required
+                                       minlength="8"
+                                       autocomplete="current-password"
+                                       aria-describedby="passwordHelp">
+                                <button class="btn btn-outline-secondary toggle-password" 
+                                        type="button"
+                                        data-bs-toggle="tooltip" 
+                                        title="Show password">
                                     <i class="fas fa-eye"></i>
                                 </button>
                             </div>
                             <div class="invalid-feedback">
-                                Please enter your password.
+                                <%= typeof error === 'string' && error.includes('password') ? error : 'Please enter your password' %>
+                            </div>
+                            <div id="passwordHelp" class="form-text text-end">
+                                <a href="/forgot-password" class="text-white-50 text-decoration-none">Forgot password?</a>
                             </div>
                         </div>
                         
