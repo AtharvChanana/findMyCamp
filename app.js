@@ -24,6 +24,70 @@ const { campgroundSchema } = require('./schemas.js');
 // Set port
 const port = process.env.PORT || 3000;
 
+// MongoDB Configuration
+const mongoConfig = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 30000,  // 30 seconds
+    socketTimeoutMS: 45000,           // 45 seconds
+    connectTimeoutMS: 30000,          // 30 seconds
+    retryWrites: true,
+    w: 'majority'
+};
+
+// Set strict query mode
+mongoose.set('strictQuery', false);
+
+// Connection events
+mongoose.connection.on('connecting', () => {
+    console.log('🔄 Connecting to MongoDB...');
+});
+
+mongoose.connection.on('connected', () => {
+    console.log('✅ MongoDB connected successfully');
+    console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`   - Host: ${mongoose.connection.host}`);
+    console.log(`   - Database: ${mongoose.connection.name}`);
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('❌ MongoDB connection error:', err.message);
+    if (err.name === 'MongooseServerSelectionError') {
+        console.error('   - Could not connect to any MongoDB servers');
+        console.error('   - Please check your MongoDB Atlas connection string and IP whitelist');
+    }
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('ℹ️  MongoDB disconnected');
+    // Only attempt to reconnect in production
+    if (process.env.NODE_ENV === 'production') {
+        console.log('🔄 Attempting to reconnect...');
+        setTimeout(connectDB, 5000);
+    }
+});
+
+// Database connection function
+const connectDB = async () => {
+    try {
+        const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
+        console.log('🔗 Connecting to MongoDB...');
+        
+        await mongoose.connect(dbUrl, mongoConfig);
+        console.log('✅ MongoDB connected successfully');
+        return mongoose.connection;
+    } catch (error) {
+        console.error('❌ MongoDB connection error:', error.message);
+        if (process.env.NODE_ENV === 'production') {
+            console.log('🔄 Retrying in 5 seconds...');
+            setTimeout(connectDB, 5000);
+        } else {
+            console.error('💡 Tip: Make sure your MongoDB is running locally or check your connection string');
+            process.exit(1);
+        }
+    }
+};
+
 // Session configuration
 const sessionConfig = {
     secret: process.env.SESSION_SECRET || 'fallback_secret_key',
@@ -32,8 +96,8 @@ const sessionConfig = {
     cookie: {
         httpOnly: true,
         // secure: process.env.NODE_ENV === 'production',
-        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,
-        maxAge: 1000 * 60 * 60 * 24 * 7
+        expires: Date.now() + 1000 * 60 * 60 * 24 * 7,  // 1 week
+        maxAge: 1000 * 60 * 60 * 24 * 7                  // 1 week
     }
 };
 
@@ -70,9 +134,9 @@ app.use((req, res, next) => {
 });
 
 // Set view engine
-app.engine('ejs', ejsMate)
-app.set('view engine', 'ejs')
-app.set('views', path.join(__dirname, 'views'))
+app.engine('ejs', ejsMate);
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 // Routes
 const authRoutes = require('./routes/auth');
@@ -82,84 +146,24 @@ const campgroundRoutes = require('./routes/campgrounds');
 app.use('/', authRoutes);
 app.use('/campgrounds', campgroundRoutes);
 
-// Load environment variables
-require('dotenv').config();
-
-// MongoDB Connection Setup
-const mongoose = require('mongoose');
-
-// Configuration for MongoDB
-const mongoConfig = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 10000,  // Increased timeout for production
-    socketTimeoutMS: 45000,
-    connectTimeoutMS: 10000,          // Increased timeout for production
-    retryWrites: true,
-    w: 'majority'
-};
-
-// Connection events
-mongoose.connection.on('connecting', () => {
-    console.log('🔄 Connecting to MongoDB...');
-});
-
-mongoose.connection.on('connected', () => {
-    console.log('✅ MongoDB connected successfully');
-    console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`   - Host: ${mongoose.connection.host}`);
-    console.log(`   - Database: ${mongoose.connection.name}`);
-});
-
-mongoose.connection.on('error', (err) => {
-    console.error('❌ MongoDB connection error:', err.message);
-    if (err.name === 'MongooseServerSelectionError') {
-        console.error('   - Could not connect to any MongoDB servers');
-    }
-});
-
-mongoose.connection.on('disconnected', () => {
-    console.log('ℹ️  MongoDB disconnected');
-    // Only attempt to reconnect in production
-    if (process.env.NODE_ENV === 'production') {
-        console.log('🔄 Attempting to reconnect...');
-        setTimeout(connectDB, 5000);
-    }
-});
-
-// Connection function
-const connectDB = async () => {
+// Start the server only after MongoDB connection is established
+const startServer = async () => {
     try {
-        const dbUrl = process.env.MONGODB_URI;
+        await connectDB();
         
-        if (!dbUrl) {
-            throw new Error('MONGODB_URI is not defined in environment variables');
-        }
-        
-        console.log('🔗 Connecting to MongoDB...');
-        console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
-        
-        await mongoose.connect(dbUrl, mongoConfig);
-        
-        console.log('✅ MongoDB connected successfully');
-        
-    } catch (err) {
-        console.error('❌ MongoDB connection failed:', err.message);
-        if (process.env.NODE_ENV === 'production') {
-            console.log('🔄 Retrying connection in 5 seconds...');
-            setTimeout(connectDB, 5000);
-        } else {
-            console.error('💡 Tip: Make sure your MongoDB Atlas cluster is running and IP is whitelisted');
-            process.exit(1);
-        }
+        app.listen(port, '0.0.0.0', () => {
+            console.log(`\n🚀 Server is running on http://localhost:${port}`);
+            console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`   - Press Ctrl+C to stop\n`);
+        });
+    } catch (error) {
+        console.error('❌ Failed to start server:', error.message);
+        process.exit(1);
     }
 };
 
-// Set strict query mode
-mongoose.set('strictQuery', false);
-
-// Initial connection
-connectDB();
+// Start the application
+startServer();
 
 // Handle process termination
 process.on('SIGINT', async () => {
