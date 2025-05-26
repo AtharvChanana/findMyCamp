@@ -39,7 +39,7 @@ const sessionStore = MongoStore.create({
         socketTimeoutMS: 45000,
         connectTimeoutMS: 30000,
         ssl: process.env.NODE_ENV === 'production',
-        sslValidate: process.env.NODE_ENV === 'production',
+        tls: process.env.NODE_ENV === 'production',
         retryWrites: true,
         w: 'majority'
     },

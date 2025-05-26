@@ -9,11 +9,11 @@ const mongoConfig = {
     w: 'majority'
 };
 
-// Add SSL options for production
+// Add SSL/TLS options for production
 if (process.env.NODE_ENV === 'production') {
     Object.assign(mongoConfig, {
         ssl: true,
-        sslValidate: true
+        tls: true
     });
 }
 
