@@ -27,8 +27,6 @@ const port = process.env.PORT || 3000;
 
 // MongoDB Configuration
 const mongoConfig = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     serverSelectionTimeoutMS: 30000,  // 30 seconds
     socketTimeoutMS: 45000,           // 45 seconds
     connectTimeoutMS: 30000,          // 30 seconds
@@ -40,19 +38,21 @@ const mongoConfig = {
 mongoose.set('strictQuery', false);
 
 // Connection state
-let isConnected = false;
+let isConnecting = false;
+let dbConnection = null;
 
 // Connection events
 mongoose.connection.on('connecting', () => {
-    console.log('🔄 Connecting to MongoDB...');
+    console.log('🔄 Connecting to MongoDB...');    
+    isConnecting = true;
 });
 
 mongoose.connection.on('connected', () => {
-    isConnected = true;
     console.log('✅ MongoDB connected successfully');
     console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`   - Host: ${mongoose.connection.host}`);
     console.log(`   - Database: ${mongoose.connection.name}`);
+    isConnecting = false;
 });
 
 mongoose.connection.on('error', (err) => {
@@ -61,24 +61,42 @@ mongoose.connection.on('error', (err) => {
         console.error('   - Could not connect to any MongoDB servers');
         console.error('   - Please check your MongoDB Atlas connection string and IP whitelist');
     }
+    isConnecting = false;
 });
 
 mongoose.connection.on('disconnected', () => {
-    isConnected = false;
     console.log('ℹ️  MongoDB disconnected');
 });
 
 // Database connection function
 const connectDB = async () => {
     // If already connected, return the existing connection
-    if (isConnected) {
+    if (mongoose.connection.readyState === 1) {
         console.log('ℹ️  Using existing database connection');
         return mongoose.connection;
     }
 
+    // If already trying to connect, wait for the connection
+    if (isConnecting) {
+        console.log('ℹ️  Already connecting to MongoDB, waiting...');
+        return new Promise((resolve, reject) => {
+            const checkConnection = () => {
+                if (mongoose.connection.readyState === 1) {
+                    resolve(mongoose.connection);
+                } else if (mongoose.connection.readyState === 0) {
+                    reject(new Error('Failed to connect to MongoDB'));
+                } else {
+                    setTimeout(checkConnection, 100);
+                }
+            };
+            checkConnection();
+        });
+    }
+
+    // Start a new connection
     try {
         const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
-        console.log('🔗 Connecting to MongoDB...');
+        console.log('🔗 Establishing new MongoDB connection...');
         
         await mongoose.connect(dbUrl, mongoConfig);
         return mongoose.connection;
@@ -90,7 +108,7 @@ const connectDB = async () => {
             return connectDB();
         } else {
             console.error('💡 Tip: Make sure your MongoDB is running locally or check your connection string');
-            process.exit(1);
+            throw error;
         }
     }
 };
@@ -163,14 +181,28 @@ app.use('/campgrounds', campgroundRoutes);
 // Start the server only after MongoDB connection is established
 const startServer = async () => {
     try {
-        const connection = await connectDB();
+        console.log('🚀 Starting server...');
         
-        // Get the HTTP server instance
+        // Connect to MongoDB first
+        try {
+            await connectDB();
+        } catch (error) {
+            console.error('❌ Failed to connect to MongoDB:', error.message);
+            if (process.env.NODE_ENV === 'production') {
+                console.log('🔄 Retrying in 5 seconds...');
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                return startServer();
+            } else {
+                throw error;
+            }
+        }
+        
+        // Start the HTTP server
         const server = app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
             const { address, port } = server.address();
-            console.log(`\n🚀 Server is running on http://${address === '::' ? 'localhost' : address}:${port}`);
+            console.log(`\n✅ Server is running on http://${address === '::' ? 'localhost' : address}:${port}`);
             console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
-            console.log(`   - Database: ${connection?.name || 'Not connected'}`);
+            console.log(`   - MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
             console.log(`   - Press Ctrl+C to stop\n`);
         });
 
@@ -187,16 +219,32 @@ const startServer = async () => {
         // Handle process termination
         const shutdown = async () => {
             console.log('\n🔴 Shutting down server...');
+            
+            // Close the server
             server.close(async () => {
-                console.log('🔌 Server closed');
+                console.log('🔌 HTTP server closed');
+                
+                // Close MongoDB connection if connected
                 if (mongoose.connection.readyState === 1) {
-                    await mongoose.connection.close(false);
-                    console.log('🔌 MongoDB connection closed');
+                    try {
+                        await mongoose.connection.close(false);
+                        console.log('🔌 MongoDB connection closed');
+                    } catch (err) {
+                        console.error('❌ Error closing MongoDB connection:', err.message);
+                    }
                 }
+                
                 process.exit(0);
             });
+            
+            // Force exit if server doesn't close in time
+            setTimeout(() => {
+                console.log('⚠️  Forcing server shutdown...');
+                process.exit(0);
+            }, 5000);
         };
 
+        // Handle graceful shutdown
         process.on('SIGTERM', shutdown);
         process.on('SIGINT', shutdown);
 
