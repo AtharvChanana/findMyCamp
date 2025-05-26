@@ -82,42 +82,49 @@ const campgroundRoutes = require('./routes/campgrounds');
 app.use('/', authRoutes);
 app.use('/campgrounds', campgroundRoutes);
 
-// Database connection
+// Database connection with enhanced error handling
 mongoose.set('strictQuery', false);
 
-// Check if mongoose is already connected
-if (mongoose.connection.readyState === 0) { // 0 = disconnected
-    (async function connectToDatabase() {
-        try {
-            // Get MongoDB URI from environment or use Render's database connection
-            const dbUrl = process.env.MONGODB_URI || 
-                         process.env.RENDER_DATABASE_URL || 
-                         'mongodb://127.0.0.1:27017/findMyCamp';
-            
-            console.log('Connecting to MongoDB...');
-            console.log('Using MongoDB URL:', dbUrl.replace(/\/\/([^:]+):([^@]+)@/, '//***:***@')); // Hide credentials in logs
-            
-            await mongoose.connect(dbUrl, {
-                useNewUrlParser: true,
-                useUnifiedTopology: true,
-                serverSelectionTimeoutMS: 10000,
-                socketTimeoutMS: 45000
-            });
-            
-            console.log('MongoDB connected successfully');
-        } catch (err) {
-            console.error('MongoDB connection error:', err);
-            console.error('Connection string used:', process.env.MONGODB_URI ? 'Using MONGODB_URI' : 
-                         process.env.RENDER_DATABASE_URL ? 'Using RENDER_DATABASE_URL' : 'Using local default');
-            // Don't exit in production to allow for auto-recovery
-            if (process.env.NODE_ENV !== 'production') {
-                process.exit(1);
-            }
-        }
-    })();
-} else {
-    console.log('MongoDB already connected');
-}
+// Handle MongoDB connection events
+mongoose.connection.on('connected', () => {
+    console.log('MongoDB connected successfully');
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('MongoDB disconnected');});
+
+// Connect to MongoDB
+const connectDB = async () => {
+    try {
+        const dbUrl = process.env.MONGODB_URI || 
+                    process.env.RENDER_DATABASE_URL || 
+                    'mongodb://127.0.0.1:27017/findMyCamp';
+        
+        console.log('Connecting to MongoDB...');
+        
+        await mongoose.connect(dbUrl, {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            serverSelectionTimeoutMS: 10000,
+            socketTimeoutMS: 45000,
+            retryWrites: true,
+            w: 'majority'
+        });
+        
+        console.log('MongoDB connected to:', mongoose.connection.host);
+    } catch (err) {
+        console.error('MongoDB connection failed:', err);
+        // Retry the connection after 5 seconds
+        setTimeout(connectDB, 5000);
+    }
+};
+
+// Initial connection
+connectDB();
 
 // Home route
 app.get('/', (req, res) => {
@@ -236,6 +243,50 @@ app.use((err, req, res, next) => {
         err: process.env.NODE_ENV === 'development' ? err : null
     });
 });
-app.listen(port, '0.0.0.0', () => {
+// 404 Handler
+app.use((req, res, next) => {
+    res.status(404).render('error', { 
+        title: '404 - Not Found',
+        message: 'The page you are looking for does not exist.' 
+    });
+});
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+    console.error('ERROR:', err);
+    const { statusCode = 500, message = 'Something went wrong!' } = err;
+    
+    // Log the full error in development
+    if (process.env.NODE_ENV === 'development') {
+        console.error('Error Stack:', err.stack);
+        return res.status(statusCode).json({
+            error: {
+                message,
+                stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+                status: statusCode
+            }
+        });
+    }
+    
+    // Production error handling
+    res.status(statusCode).render('error', {
+        title: `${statusCode} Error`,
+        message
+    });
+});
+
+// Start server
+const server = app.listen(port, '0.0.0.0', () => {
     console.log(`Server is running on port ${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`MongoDB: ${mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'}`);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+    console.error('UNHANDLED REJECTION! 💥 Shutting down...');
+    console.error(err.name, err.message);
+    server.close(() => {
+        process.exit(1);
+    });
 });
