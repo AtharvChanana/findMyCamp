@@ -1,13 +1,13 @@
 services:
   - type: web
-    name: yelpcamp
+    name: findmycamp
     env: node
     buildCommand: npm install
     startCommand: npm start
     envVars:
       - key: MONGODB_URI
         fromDatabase:
-          name: yelpcamp-db
+          name: findmycamp-db
           property: connectionString
       - key: SESSION_SECRET
         generateValue: true
@@ -16,9 +16,9 @@ services:
     plan: free
 
 databases:
-  - name: yelpcamp-db
-    databaseName: yelpcamp
-    user: yelpcamp_user
+  - name: findmycamp-db
+    databaseName: findmycamp
+    user: findmycamp_user
     plan: free
     ipAllowList:
       - 0.0.0.0/0
