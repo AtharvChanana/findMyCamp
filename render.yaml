@@ -7,6 +7,13 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+    healthCheckPath: /
+    autoDeploy: true
+    region: oregon
     plan: free
 databases:
   - name: findmycamp-db

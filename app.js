@@ -82,49 +82,96 @@ const campgroundRoutes = require('./routes/campgrounds');
 app.use('/', authRoutes);
 app.use('/campgrounds', campgroundRoutes);
 
-// Database connection with enhanced error handling
-mongoose.set('strictQuery', false);
+// Load environment variables
+require('dotenv').config();
 
-// Handle MongoDB connection events
+// MongoDB Connection Setup
+const mongoose = require('mongoose');
+
+// Configuration for MongoDB
+const mongoConfig = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 10000,  // Increased timeout for production
+    socketTimeoutMS: 45000,
+    connectTimeoutMS: 10000,          // Increased timeout for production
+    retryWrites: true,
+    w: 'majority'
+};
+
+// Connection events
+mongoose.connection.on('connecting', () => {
+    console.log('🔄 Connecting to MongoDB...');
+});
+
 mongoose.connection.on('connected', () => {
-    console.log('MongoDB connected successfully');
+    console.log('✅ MongoDB connected successfully');
+    console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`   - Host: ${mongoose.connection.host}`);
+    console.log(`   - Database: ${mongoose.connection.name}`);
 });
 
 mongoose.connection.on('error', (err) => {
-    console.error('MongoDB connection error:', err);
+    console.error('❌ MongoDB connection error:', err.message);
+    if (err.name === 'MongooseServerSelectionError') {
+        console.error('   - Could not connect to any MongoDB servers');
+    }
 });
 
 mongoose.connection.on('disconnected', () => {
-    console.log('MongoDB disconnected');});
+    console.log('ℹ️  MongoDB disconnected');
+    // Only attempt to reconnect in production
+    if (process.env.NODE_ENV === 'production') {
+        console.log('🔄 Attempting to reconnect...');
+        setTimeout(connectDB, 5000);
+    }
+});
 
-// Connect to MongoDB
+// Connection function
 const connectDB = async () => {
     try {
-        const dbUrl = process.env.MONGODB_URI || 
-                    process.env.RENDER_DATABASE_URL || 
-                    'mongodb://127.0.0.1:27017/findMyCamp';
+        const dbUrl = process.env.MONGODB_URI;
         
-        console.log('Connecting to MongoDB...');
+        if (!dbUrl) {
+            throw new Error('MONGODB_URI is not defined in environment variables');
+        }
         
-        await mongoose.connect(dbUrl, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 10000,
-            socketTimeoutMS: 45000,
-            retryWrites: true,
-            w: 'majority'
-        });
+        console.log('🔗 Connecting to MongoDB...');
+        console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
         
-        console.log('MongoDB connected to:', mongoose.connection.host);
+        await mongoose.connect(dbUrl, mongoConfig);
+        
+        console.log('✅ MongoDB connected successfully');
+        
     } catch (err) {
-        console.error('MongoDB connection failed:', err);
-        // Retry the connection after 5 seconds
-        setTimeout(connectDB, 5000);
+        console.error('❌ MongoDB connection failed:', err.message);
+        if (process.env.NODE_ENV === 'production') {
+            console.log('🔄 Retrying connection in 5 seconds...');
+            setTimeout(connectDB, 5000);
+        } else {
+            console.error('💡 Tip: Make sure your MongoDB Atlas cluster is running and IP is whitelisted');
+            process.exit(1);
+        }
     }
 };
 
+// Set strict query mode
+mongoose.set('strictQuery', false);
+
 // Initial connection
 connectDB();
+
+// Handle process termination
+process.on('SIGINT', async () => {
+    try {
+        await mongoose.connection.close();
+        console.log('MongoDB connection closed through app termination');
+        process.exit(0);
+    } catch (err) {
+        console.error('Error closing MongoDB connection:', err);
+        process.exit(1);
+    }
+});
 
 // Home route
 app.get('/', (req, res) => {
