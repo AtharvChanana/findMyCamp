@@ -161,7 +161,7 @@ const startServer = async () => {
         
         // Auth routes
         const authRoutes = require('./routes/auth');
-        app.use(authRoutes);
+        app.use('/', authRoutes);  // Mount auth routes at the root
         
         // 404 handler
         app.all('*', (req, res, next) => {
@@ -173,6 +173,10 @@ const startServer = async () => {
             console.error('Error:', err);
             const statusCode = err.statusCode || 500;
             const message = err.message || 'Something went wrong!';
+            
+            // Set default values for template
+            res.locals.statusCode = statusCode;
+            res.locals.message = message;
             
             if (req.accepts('html')) {
                 // Render error page for HTML responses
