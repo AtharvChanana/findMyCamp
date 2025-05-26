@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 const flash = require('connect-flash');
@@ -38,12 +39,16 @@ const mongoConfig = {
 // Set strict query mode
 mongoose.set('strictQuery', false);
 
+// Connection state
+let isConnected = false;
+
 // Connection events
 mongoose.connection.on('connecting', () => {
     console.log('🔄 Connecting to MongoDB...');
 });
 
 mongoose.connection.on('connected', () => {
+    isConnected = true;
     console.log('✅ MongoDB connected successfully');
     console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`   - Host: ${mongoose.connection.host}`);
@@ -59,28 +64,30 @@ mongoose.connection.on('error', (err) => {
 });
 
 mongoose.connection.on('disconnected', () => {
+    isConnected = false;
     console.log('ℹ️  MongoDB disconnected');
-    // Only attempt to reconnect in production
-    if (process.env.NODE_ENV === 'production') {
-        console.log('🔄 Attempting to reconnect...');
-        setTimeout(connectDB, 5000);
-    }
 });
 
 // Database connection function
 const connectDB = async () => {
+    // If already connected, return the existing connection
+    if (isConnected) {
+        console.log('ℹ️  Using existing database connection');
+        return mongoose.connection;
+    }
+
     try {
         const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
         console.log('🔗 Connecting to MongoDB...');
         
         await mongoose.connect(dbUrl, mongoConfig);
-        console.log('✅ MongoDB connected successfully');
         return mongoose.connection;
     } catch (error) {
         console.error('❌ MongoDB connection error:', error.message);
         if (process.env.NODE_ENV === 'production') {
             console.log('🔄 Retrying in 5 seconds...');
-            setTimeout(connectDB, 5000);
+            await new Promise(resolve => setTimeout(resolve, 5000));
+            return connectDB();
         } else {
             console.error('💡 Tip: Make sure your MongoDB is running locally or check your connection string');
             process.exit(1);
@@ -90,14 +97,21 @@ const connectDB = async () => {
 
 // Session configuration
 const sessionConfig = {
+    name: 'findMyCampSession',
     secret: process.env.SESSION_SECRET || 'fallback_secret_key',
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp',
+        touchAfter: 24 * 3600, // time period in seconds (1 day)
+        autoRemove: 'native' // remove expired sessions
+    }),
     cookie: {
         httpOnly: true,
-        // secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production',
         expires: Date.now() + 1000 * 60 * 60 * 24 * 7,  // 1 week
-        maxAge: 1000 * 60 * 60 * 24 * 7                  // 1 week
+        maxAge: 1000 * 60 * 60 * 24 * 7,               // 1 week
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
 };
 
@@ -149,13 +163,43 @@ app.use('/campgrounds', campgroundRoutes);
 // Start the server only after MongoDB connection is established
 const startServer = async () => {
     try {
-        await connectDB();
+        const connection = await connectDB();
         
-        app.listen(port, '0.0.0.0', () => {
-            console.log(`\n🚀 Server is running on http://localhost:${port}`);
+        // Get the HTTP server instance
+        const server = app.listen(process.env.PORT || 3000, '0.0.0.0', () => {
+            const { address, port } = server.address();
+            console.log(`\n🚀 Server is running on http://${address === '::' ? 'localhost' : address}:${port}`);
             console.log(`   - Environment: ${process.env.NODE_ENV || 'development'}`);
+            console.log(`   - Database: ${connection?.name || 'Not connected'}`);
             console.log(`   - Press Ctrl+C to stop\n`);
         });
+
+        // Handle server errors
+        server.on('error', (error) => {
+            if (error.code === 'EADDRINUSE') {
+                console.error(`❌ Port ${process.env.PORT || 3000} is already in use.`);
+            } else {
+                console.error('❌ Server error:', error.message);
+            }
+            process.exit(1);
+        });
+
+        // Handle process termination
+        const shutdown = async () => {
+            console.log('\n🔴 Shutting down server...');
+            server.close(async () => {
+                console.log('🔌 Server closed');
+                if (mongoose.connection.readyState === 1) {
+                    await mongoose.connection.close(false);
+                    console.log('🔌 MongoDB connection closed');
+                }
+                process.exit(0);
+            });
+        };
+
+        process.on('SIGTERM', shutdown);
+        process.on('SIGINT', shutdown);
+
     } catch (error) {
         console.error('❌ Failed to start server:', error.message);
         process.exit(1);
