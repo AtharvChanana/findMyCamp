@@ -1,22 +1,28 @@
 // Load environment variables first
 require('dotenv').config();
 
-const express = require('express')
-const app = express()
-const path = require('path')
-const Campground = require('./models/campground')
-const User = require('./models/user')
-const mongoose = require('mongoose')
-const catchAsync = require('./utils/catchAsync')
-const ExpressError = require('./utils/ExpressError')
-const {campgroundSchema} = require('./schemas.js')
-const methodOverride = require('method-override')
-const ejsMate = require('ejs-mate')
-const session = require('express-session')
-const passport = require('passport')
-const LocalStrategy = require('passport-local')
-const flash = require('connect-flash')
-const passportLocalMongoose = require('passport-local-mongoose')
+const express = require('express');
+const app = express();
+const path = require('path');
+const mongoose = require('mongoose');
+const methodOverride = require('method-override');
+const ejsMate = require('ejs-mate');
+const session = require('express-session');
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+const flash = require('connect-flash');
+
+// Import models
+const Campground = require('./models/campground');
+const User = require('./models/user');
+
+// Import utilities
+const catchAsync = require('./utils/catchAsync');
+const ExpressError = require('./utils/ExpressError');
+const { campgroundSchema } = require('./schemas.js');
+
+// Set port
+const port = process.env.PORT || 3000;
 
 // Session configuration
 const sessionConfig = {
@@ -78,16 +84,22 @@ app.use('/campgrounds', campgroundRoutes);
 
 main().catch(err => console.log(err));
 
+// Database connection
+mongoose.set('strictQuery', false);
+
 async function main() {
     try {
         const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
         console.log('Connecting to MongoDB...');
-        console.log('MongoDB URI:', dbUrl);
+        
         await mongoose.connect(dbUrl, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            serverSelectionTimeoutMS: 5000
+            serverSelectionTimeoutMS: 5000,
+            socketTimeoutMS: 45000,
+            family: 4 // Use IPv4, skip trying IPv6
         });
+        
         console.log('MongoDB connected successfully');
     } catch (err) {
         console.error('MongoDB connection error:', err);
@@ -212,7 +224,6 @@ app.use((err, req, res, next) => {
         err: process.env.NODE_ENV === 'development' ? err : null
     });
 });
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-    console.log(`Serving on port ${port}`)
-})
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server is running on port ${port}`);
+});
