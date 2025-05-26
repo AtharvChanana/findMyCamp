@@ -79,7 +79,7 @@ main().catch(err => console.log(err));
 require('dotenv').config();
 
 async function main() {
-    const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/yelp-camp';
+    const dbUrl = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
     await mongoose.connect(dbUrl);
     console.log('MONGO CONNECTION OPEN')
 }
