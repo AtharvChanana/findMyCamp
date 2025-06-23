@@ -12,14 +12,6 @@ const userSchema = new Schema({
         maxlength: [30, 'Username cannot be longer than 30 characters'],
         match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
     },
-    email: {
-        type: String,
-        required: [true, 'Email is required'],
-        unique: true,
-        trim: true,
-        lowercase: true,
-        match: [/^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/, 'Please enter a valid email address']
-    },
     savedCampgrounds: [{
         type: Schema.Types.ObjectId,
         ref: 'Campground'
@@ -79,7 +71,6 @@ userSchema.methods.getProfile = function() {
     return {
         _id: this._id,
         username: this.username,
-        email: this.email,
         savedCampgrounds: this.savedCampgrounds,
         lastLogin: this.lastLogin
     };
@@ -91,16 +82,6 @@ userSchema.statics.findByUsername = async function(username) {
         return await this.findOne({ username });
     } catch (error) {
         console.error('Error finding user by username:', error);
-        throw error;
-    }
-};
-
-// Add a static method to find by email with error handling
-userSchema.statics.findByEmail = async function(email) {
-    try {
-        return await this.findOne({ email });
-    } catch (error) {
-        console.error('Error finding user by email:', error);
         throw error;
     }
 };

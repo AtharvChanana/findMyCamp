@@ -173,9 +173,6 @@ const validateRegister = [
         .matches(/^[a-zA-Z0-9_]+$/).withMessage('Username can only contain letters, numbers, and underscores')
         .trim()
         .escape(),
-    check('email')
-        .isEmail().withMessage('Please enter a valid email address')
-        .normalizeEmail(),
     check('password')
         .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long')
         .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
@@ -189,7 +186,7 @@ const validateRegister = [
 // Register form submission
 router.post('/register', validateRegister, async (req, res, next) => {
     try {
-        const { username, email, password } = req.body;
+        const { username, password } = req.body;
         
         // Check for validation errors
         const errors = validationResult(req);
@@ -199,35 +196,26 @@ router.post('/register', validateRegister, async (req, res, next) => {
                 error: errors.array()[0].msg,
                 user: { 
                     username: username || '', 
-                    email: email || '' 
+                    email: '' 
                 },
                 page: 'register'
             });
         }
 
-        // Check if username or email already exists
-        const existingUser = await User.findOne({ 
-            $or: [
-                { username },
-                { email: email.toLowerCase() }
-            ]
-        });
+        // Check if username already exists
+        const existingUser = await User.findOne({ username });
 
         if (existingUser) {
-            const field = existingUser.username === username ? 'username' : 'email';
             return res.status(400).render('auth/register', {
                 title: 'Register | FindMyCamp',
-                error: `A user with that ${field} already exists`,
-                user: { username, email },
+                error: `A user with that username already exists`,
+                user: { username },
                 page: 'register'
             });
         }
 
         // Create new user
-        const newUser = new User({ 
-            username: username.trim(),
-            email: email.toLowerCase().trim()
-        });
+        const newUser = new User({ username: username.trim() });
 
         // Register user with passport-local-mongoose
         User.register(newUser, password, async (err, user) => {
@@ -236,7 +224,7 @@ router.post('/register', validateRegister, async (req, res, next) => {
                 return res.status(500).render('auth/register', {
                     title: 'Register | FindMyCamp',
                     error: 'An error occurred during registration. Please try again.',
-                    user: { username, email },
+                    user: { username },
                     page: 'register'
                 });
             }
@@ -253,38 +241,4 @@ router.post('/register', validateRegister, async (req, res, next) => {
                     // Update last login time
                     await user.updateLastLogin();
                     
-                    req.flash('success', `Welcome to FindMyCamp, ${user.username}!`);
-                    const redirectTo = req.session.returnTo || '/campgrounds';
-                    delete req.session.returnTo;
-                    return res.redirect(redirectTo);
-                } catch (updateError) {
-                    console.error('Error updating last login after registration:', updateError);
-                    req.flash('success', `Welcome to FindMyCamp, ${user.username}!`);
-                    return res.redirect('/campgrounds');
-                }
-            });
-        });
-    } catch (err) {
-        console.error('Registration process error:', err);
-        res.status(500).render('auth/register', {
-            title: 'Register | FindMyCamp',
-            error: 'An unexpected error occurred. Please try again.',
-            user: req.body,
-            page: 'register'
-        });
-    }
-});
-
-// Logout
-router.get('/logout', (req, res, next) => {
-    req.logout((err) => {
-        if (err) {
-            req.flash('error', 'Error logging out');
-            return next(err);
-        }
-        req.flash('success', 'Logged out successfully!');
-        res.redirect('/campgrounds');
-    });
-});
-
-module.exports = router;
+                    req.flash('success', `
