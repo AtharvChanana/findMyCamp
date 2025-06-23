@@ -8,9 +8,9 @@ async function createAdmin() {
     await mongoose.connect(MONGODB_URI);
     console.log('Connected to MongoDB');
 
-    // Delete any existing admin user with username 'admin'
-    await User.deleteMany({ username: 'admin' });
-    console.log('Deleted any existing admin user with username "admin"');
+    // Delete any existing admin user with username 'admin' (case-insensitive)
+    await User.deleteMany({ username: { $regex: /^admin$/i } });
+    console.log('Deleted any existing admin user with username "admin" (case-insensitive)');
 
     // Register new admin user
     User.register(new User({ username: 'admin', isAdmin: true }), 'Admin@1234', function(err, user) {
