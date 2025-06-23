@@ -160,20 +160,10 @@ userSchema.pre('save', function(next) {
     next();
 });
 
-// Static method to find user by username or email
-userSchema.statics.findByUsernameOrEmail = async function(identifier) {
-    return this.findOne({
-        $or: [
-            { username: identifier },
-            { email: identifier.toLowerCase() }
-        ]
-    });
-};
-
 // Error handling middleware
 userSchema.post('save', function(error, doc, next) {
     if (error.name === 'MongoServerError' && error.code === 11000) {
-        next(new Error('A user with this username or email already exists'));
+        next(new Error('A user with this username already exists'));
     } else {
         next(error);
     }
@@ -195,7 +185,7 @@ userSchema.plugin(passportLocalMongoose, {
     authenticate: function(username, password, cb) {
         const User = this;
         
-        this.findByUsernameOrEmail(username, (err, user) => {
+        this.findByUsername(username, (err, user) => {
             if (err) { return cb(err); }
             
             // No user found
