@@ -241,4 +241,24 @@ router.post('/register', validateRegister, async (req, res, next) => {
                     // Update last login time
                     await user.updateLastLogin();
                     
-                    req.flash('success', `
+                    req.flash('success', `Welcome to FindMyCamp, ${user.username}!`);
+                    return res.redirect('/campgrounds');
+                } catch (updateError) {
+                    console.error('Error updating last login after registration:', updateError);
+                    req.flash('success', `Welcome to FindMyCamp, ${user.username}!`);
+                    return res.redirect('/campgrounds');
+                }
+            });
+        });
+    } catch (err) {
+        console.error('Registration process error:', err);
+        res.status(500).render('auth/register', {
+            title: 'Register | FindMyCamp',
+            error: 'An unexpected error occurred. Please try again.',
+            user: req.body,
+            page: 'register'
+        });
+    }
+});
+
+module.exports = router;
