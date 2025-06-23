@@ -20,9 +20,10 @@ const { connectDB, connection: dbConnection } = require('./config/database');
 const Campground = require('./models/campground');
 const User = require('./models/user');
 
-// Import utilities
+// Import utilities and middleware
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
+const { isLoggedIn, isAuthor, validateCampground } = require('./middleware');
 const { campgroundSchema } = require('./schemas.js');
 
 // Set port
@@ -31,22 +32,29 @@ const port = process.env.PORT || 3000;
 // Set strict query mode
 mongoose.set('strictQuery', false);
 
+// Check if we're connecting to Atlas
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
+const isAtlas = MONGODB_URI.includes('mongodb+srv://');
+
 // Configure session store with MongoDB connection options
 const sessionStore = MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp',
+    mongoUrl: MONGODB_URI,
     mongoOptions: {
         serverSelectionTimeoutMS: 30000,
         socketTimeoutMS: 45000,
         connectTimeoutMS: 30000,
-        tls: process.env.NODE_ENV === 'production',
-        tlsCAFile: '/etc/ssl/certs/ca-certificates.crt',
-        tlsAllowInvalidHostnames: false,
-        minTlsVersion: 'TLSv1.2',
-        maxTlsVersion: 'TLSv1.3',
         retryWrites: true,
         w: 'majority',
         maxPoolSize: 10,
-        minPoolSize: 5
+        minPoolSize: 5,
+        // Only add TLS options for Atlas connections
+        ...(isAtlas && {
+            tls: true,
+            tlsCAFile: '/etc/ssl/certs/ca-certificates.crt',
+            tlsAllowInvalidHostnames: false,
+            minTlsVersion: 'TLSv1.2',
+            maxTlsVersion: 'TLSv1.3'
+        })
     },
     touchAfter: 24 * 60 * 60, // 1 day - time period in seconds
     crypto: { 
@@ -102,17 +110,6 @@ app.engine('ejs', ejsMate);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Validation middleware
-const validateCampground = (req, res, next) => {
-    const { error } = campgroundSchema.validate(req.body);
-    if (error) {
-        const msg = error.details.map(el => el.message).join(',');
-        throw new ExpressError(msg, 400);
-    } else {
-        next();
-    }
-};
-
 // Routes
 app.get('/', (req, res) => {
     res.locals.currentPage = 'home';
@@ -165,37 +162,49 @@ app.get('/campgrounds', catchAsync(async (req, res) => {
     });
 }));
 
-app.get('/campgrounds/new', (req, res) => {
+// Protected route - require login to create campground
+app.get('/campgrounds/new', isLoggedIn, (req, res) => {
     res.render('campgrounds/new');
 });
 
-app.post('/campgrounds', validateCampground, catchAsync(async (req, res) => {
+// Protected route - require login to create campground
+app.post('/campgrounds', isLoggedIn, validateCampground, catchAsync(async (req, res) => {
     const campground = new Campground(req.body.campground);
+    campground.author = req.user._id;
     await campground.save();
+    req.flash('success', 'Successfully made a new campground!');
     res.redirect(`/campgrounds/${campground.id}`);
 }));
 
 app.get('/campgrounds/:id', catchAsync(async (req, res) => {
     const { id } = req.params;
-    const campground = await Campground.findById(id);
+    const campground = await Campground.findById(id).populate('author');
     res.render('campgrounds/show', { campground });
 }));
 
-app.get('/campgrounds/:id/edit', catchAsync(async (req, res) => {
+// Protected route - require login and ownership to edit
+app.get('/campgrounds/:id/edit', isLoggedIn, isAuthor, catchAsync(async (req, res) => {
     const { id } = req.params;
     const campground = await Campground.findById(id);
     res.render('campgrounds/edit', { campground });
 }));
 
-app.put('/campgrounds/:id', validateCampground, catchAsync(async (req, res) => {
+// Protected route - require login and ownership to update
+app.put('/campgrounds/:id', isLoggedIn, isAuthor, validateCampground, catchAsync(async (req, res) => {
     const { id } = req.params;
     const campground = await Campground.findByIdAndUpdate(id, { ...req.body.campground });
+    req.flash('success', 'Successfully updated campground!');
     res.redirect(`/campgrounds/${campground.id}`);
 }));
 
-app.delete('/campgrounds/:id', catchAsync(async (req, res) => {
+// Protected route - require login and ownership or admin to delete
+app.delete('/campgrounds/:id', isLoggedIn, (req, res, next) => {
+    if (req.user.isAdmin) return next();
+    return isAuthor(req, res, next);
+}, catchAsync(async (req, res) => {
     const { id } = req.params;
     await Campground.findByIdAndDelete(id);
+    req.flash('success', 'Successfully deleted campground!');
     res.redirect('/campgrounds');
 }));
 

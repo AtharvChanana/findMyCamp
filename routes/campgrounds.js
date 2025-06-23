@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Campground = require('../models/campground');
 const catchAsync = require('../utils/catchAsync');
-const { isLoggedIn } = require('../middleware');
+const { isLoggedIn, isAuthor } = require('../middleware');
 
 // GET saved campgrounds
 router.get('/saved', isLoggedIn, catchAsync(async (req, res) => {
@@ -118,6 +118,17 @@ router.post('/:id/unsave', isLoggedIn, catchAsync(async (req, res) => {
     }
     
     res.redirect('/campgrounds/saved');
+}));
+
+// DELETE campground (author or admin)
+router.delete('/:id', isLoggedIn, (req, res, next) => {
+    if (req.user.isAdmin) return next();
+    return isAuthor(req, res, next);
+}, catchAsync(async (req, res) => {
+    const { id } = req.params;
+    await Campground.findByIdAndDelete(id);
+    req.flash('success', 'Successfully deleted campground!');
+    res.redirect('/campgrounds');
 }));
 
 module.exports = router;

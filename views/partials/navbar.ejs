@@ -27,6 +27,7 @@
                         <i class="fas fa-campground me-1"></i> Campgrounds
                     </a>
                 </li>
+                <% if (currentUser) { %>
                 <li class="nav-item me-2 me-lg-3">
                     <a class="nav-link<%= currentPath === '/campgrounds/new' ? ' active' : '' %>" 
                        href="/campgrounds/new"
@@ -34,7 +35,6 @@
                         <i class="fas fa-plus-circle me-1"></i> Add Campground
                     </a>
                 </li>
-                <% if (currentUser) { %>
                 <li class="nav-item me-2 me-lg-3">
                     <a class="nav-link<%= currentPath === '/campgrounds/saved' ? ' active' : '' %>" 
                        href="/campgrounds/saved"
@@ -81,11 +81,6 @@
                         <li>
                             <a class="dropdown-item d-flex align-items-center" href="/campgrounds/saved">
                                 <i class="fas fa-bookmark me-2 text-primary"></i> Saved Campgrounds
-                            </a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center" href="/users/<%= currentUser._id %>/reviews">
-                                <i class="fas fa-star me-2 text-warning"></i> My Reviews
                             </a>
                         </li>
                         <li><hr class="dropdown-divider"></li>

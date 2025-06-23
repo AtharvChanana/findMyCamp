@@ -22,13 +22,11 @@ const campgroundSchema = new Schema({
     },
     rating: {
         type: Number,
-        required: true,
         min: 1,
         max: 5
     },
     reviewCount: {
         type: Number,
-        required: true,
         min: 0
     },
     description: {
@@ -49,7 +47,7 @@ const campgroundSchema = new Schema({
     }]
 })
 
-// Add a pre-save hook to generate random price and rating if not provided
+// Add a pre-save hook to generate random values if not provided
 campgroundSchema.pre('save', function(next) {
     if (this.isNew) {
         if (!this.price) {

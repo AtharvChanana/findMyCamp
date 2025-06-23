@@ -11,17 +11,6 @@ const mongoConfig = {
     minPoolSize: 5
 };
 
-// Add SSL/TLS options for production
-if (process.env.NODE_ENV === 'production') {
-    Object.assign(mongoConfig, {
-        tls: true,
-        tlsCAFile: '/etc/ssl/certs/ca-certificates.crt',
-        tlsAllowInvalidHostnames: false,
-        minTlsVersion: 'TLSv1.2',
-        maxTlsVersion: 'TLSv1.3'
-    });
-}
-
 // Connection state
 let isConnecting = false;
 
@@ -90,15 +79,23 @@ const connectDB = async (dbUrl = null) => {
     try {
         console.log('🔗 Establishing new MongoDB connection...');
         
-        // Add specific options for Atlas connections
+        // Create config object for this connection
+        const connectionConfig = { ...mongoConfig };
+        
+        // Add specific options for Atlas connections only
         if (isAtlas) {
-            Object.assign(mongoConfig, {
+            Object.assign(connectionConfig, {
                 useNewUrlParser: true,
-                useUnifiedTopology: true
+                useUnifiedTopology: true,
+                tls: true,
+                tlsCAFile: '/etc/ssl/certs/ca-certificates.crt',
+                tlsAllowInvalidHostnames: false,
+                minTlsVersion: 'TLSv1.2',
+                maxTlsVersion: 'TLSv1.3'
             });
         }
         
-        await mongoose.connect(MONGODB_URI, mongoConfig);
+        await mongoose.connect(MONGODB_URI, connectionConfig);
         return mongoose.connection;
     } catch (error) {
         console.error('❌ MongoDB connection error:', error.message);
