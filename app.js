@@ -50,10 +50,7 @@ const sessionStore = MongoStore.create({
         // Only add TLS options for Atlas connections
         ...(isAtlas && {
             tls: true,
-            tlsCAFile: '/etc/ssl/certs/ca-certificates.crt',
-            tlsAllowInvalidHostnames: false,
-            minTlsVersion: 'TLSv1.2',
-            maxTlsVersion: 'TLSv1.3'
+            tlsAllowInvalidHostnames: false
         })
     },
     touchAfter: 24 * 60 * 60, // 1 day - time period in seconds

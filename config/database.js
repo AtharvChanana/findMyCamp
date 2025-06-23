@@ -88,10 +88,7 @@ const connectDB = async (dbUrl = null) => {
                 useNewUrlParser: true,
                 useUnifiedTopology: true,
                 tls: true,
-                tlsCAFile: '/etc/ssl/certs/ca-certificates.crt',
-                tlsAllowInvalidHostnames: false,
-                minTlsVersion: 'TLSv1.2',
-                maxTlsVersion: 'TLSv1.3'
+                tlsAllowInvalidHostnames: false
             });
         }
         
