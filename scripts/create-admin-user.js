@@ -1,35 +1,26 @@
 const mongoose = require('mongoose');
 const User = require('../models/user');
+require('dotenv').config();
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
 
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-});
+async function createAdmin() {
+    await mongoose.connect(MONGODB_URI);
+    console.log('Connected to MongoDB');
 
-const createAdmin = async () => {
-    try {
-        let admin = await User.findOne({ username: 'admin' });
-        if (!admin) {
-            admin = new User({
-                username: 'admin',
-                email: 'admin@example.com',
-                isAdmin: true
-            });
-            await User.register(admin, 'Admin@1234');
-            console.log('✅ Admin user created: admin / Admin@1234');
+    // Delete any existing admin user with username 'admin'
+    await User.deleteMany({ username: 'admin' });
+    console.log('Deleted any existing admin user with username "admin"');
+
+    // Register new admin user
+    User.register(new User({ username: 'admin', isAdmin: true }), 'Admin@1234', function(err, user) {
+        if (err) {
+            console.error('Error creating admin user:', err);
         } else {
-            admin.isAdmin = true;
-            await admin.save();
-            console.log('ℹ️ Admin user already exists. isAdmin set to true.');
+            console.log('Admin user created successfully:', user);
         }
-    } catch (err) {
-        console.error('Error creating admin user:', err);
-    } finally {
-        await mongoose.connection.close();
-        console.log('🔌 Database connection closed.');
-    }
-};
+        mongoose.connection.close();
+    });
+}
 
 createAdmin(); 
