@@ -43,35 +43,40 @@ const renderLoginError = (res, error, username = '') => {
 // Login form submission with validation and error handling
 router.post('/login', validateLogin, (req, res, next) => {
     const { username, password } = req.body;
-    const usernameLower = username.toLowerCase();
+    const usernameLower = username ? username.toLowerCase().trim() : '';
     const errors = validationResult(req);
     
     // Handle validation errors
     if (!errors.isEmpty()) {
-        return renderLoginError(res, errors.array()[0].msg, username);
+        return renderLoginError(res, errors.array()[0].msg, usernameLower);
+    }
+    
+    if (!usernameLower || !password) {
+        return renderLoginError(res, 'Username and password are required', usernameLower);
     }
     
     // Use passport's local strategy for authentication
     passport.authenticate('local', (err, user, info) => {
         if (err) {
             console.error('Authentication error:', err);
-            return renderLoginError(res, 'An error occurred during authentication. Please try again.', username);
+            return renderLoginError(res, 'An error occurred during authentication. Please try again.', usernameLower);
         }
         
         if (!user) {
-            return renderLoginError(res, info.message || 'Invalid username or password', username);
+            // Provide a generic error message to prevent username enumeration
+            return renderLoginError(res, 'Invalid username or password', usernameLower);
         }
         
         // Check if account is active
         if (!user.isActive) {
-            return renderLoginError(res, 'This account has been deactivated. Please contact support.', username);
+            return renderLoginError(res, 'This account has been deactivated. Please contact support.', usernameLower);
         }
         
         // Log the user in
         req.logIn(user, async (err) => {
             if (err) {
                 console.error('Login error:', err);
-                return renderLoginError(res, 'An error occurred during login. Please try again.', username);
+                return renderLoginError(res, 'An error occurred during login. Please try again.', usernameLower);
             }
             
             try {
@@ -133,6 +138,7 @@ const validateRegister = [
 router.post('/register', validateRegister, async (req, res, next) => {
     try {
         const { username, password } = req.body;
+        const usernameLower = username.toLowerCase().trim();
         
         // Check for validation errors
         const errors = validationResult(req);
@@ -141,40 +147,54 @@ router.post('/register', validateRegister, async (req, res, next) => {
                 title: 'Register | FindMyCamp',
                 error: errors.array()[0].msg,
                 user: { 
-                    username: username || '', 
-                    email: '' 
+                    username: usernameLower || ''
                 },
                 page: 'register'
             });
         }
 
-        // Check if username already exists
-        const existingUser = await User.findOne({ username });
+        // Check if username already exists (case insensitive)
+        const existingUser = await User.findOne({ 
+            username: { $regex: new RegExp(`^${usernameLower}$`, 'i') } 
+        });
 
         if (existingUser) {
             return res.status(400).render('auth/register', {
                 title: 'Register | FindMyCamp',
-                error: `A user with that username already exists`,
-                user: { username },
+                error: 'A user with that username already exists',
+                user: { username: usernameLower },
                 page: 'register'
             });
         }
 
-
         // Create new user with isActive set to true
         const newUser = new User({ 
-            username: username.trim(),
-            isActive: true
+            username: usernameLower,
+            isActive: true,
+            lastLogin: new Date()
         });
 
         // Register user with passport-local-mongoose
         User.register(newUser, password, async (err, user) => {
             if (err) {
                 console.error('Registration error:', err);
-                return res.status(500).render('auth/register', {
+                let errorMessage = 'An error occurred during registration. Please try again.';
+                
+                // Handle specific registration errors
+                if (err.name === 'UserExistsError') {
+                    errorMessage = 'A user with that username already exists.';
+                } else if (err.name === 'MissingUsernameError') {
+                    errorMessage = 'Username is required.';
+                } else if (err.name === 'MissingPasswordError') {
+                    errorMessage = 'Password is required.';
+                } else if (err.name === 'MongoServerError' && err.code === 11000) {
+                    errorMessage = 'A user with that username already exists.';
+                }
+                
+                return res.status(400).render('auth/register', {
                     title: 'Register | FindMyCamp',
-                    error: 'An error occurred during registration. Please try again.',
-                    user: { username },
+                    error: errorMessage,
+                    user: { username: usernameLower },
                     page: 'register'
                 });
             }
@@ -188,28 +208,21 @@ router.post('/register', validateRegister, async (req, res, next) => {
                 }
 
                 try {
-                    // Set last login time
-                    user.lastLogin = new Date();
-                    await user.save();
-                    
+                    // Set success message
                     req.flash('success', `Welcome to FindMyCamp, ${user.username}!`);
                     return res.redirect('/campgrounds');
-                } catch (updateError) {
-                    console.error('Error updating last login after registration:', updateError);
-                    // Even if update fails, continue with login
+                } catch (error) {
+                    console.error('Error after registration:', error);
+                    // Even if there's an error after login, the user is still logged in
                     req.flash('success', `Welcome to FindMyCamp, ${user.username}!`);
                     return res.redirect('/campgrounds');
                 }
             });
         });
-    } catch (err) {
-        console.error('Registration process error:', err);
-        res.status(500).render('auth/register', {
-            title: 'Register | FindMyCamp',
-            error: 'An unexpected error occurred. Please try again.',
-            user: req.body,
-            page: 'register'
-        });
+    } catch (error) {
+        console.error('Error during registration:', error);
+        req.flash('error', 'An unexpected error occurred. Please try again.');
+        res.redirect('/register');
     }
 });
 

@@ -65,7 +65,10 @@ userSchema.plugin(passportLocalMongoose, {
     },
     limitAttempts: true,
     maxAttempts: 5,
-    unlockInterval: 300 // 5 minutes in seconds
+    unlockInterval: 300, // 5 minutes in seconds
+    usernameLowerCase: true, // Convert username to lowercase
+    usernameUnique: true,    // Ensure usernames are unique
+    usernameQueryFields: ['username'] // Fields to query when finding user
 });
 
 // Add a method to get user profile without sensitive data
@@ -88,17 +91,38 @@ userSchema.statics.findByUsername = async function(username) {
 
 // Pre-save hook to handle username formatting and last login updates
 userSchema.pre('save', function(next) {
-    // Ensure username is trimmed and lowercase
-    if (this.isModified('username')) {
-        this.username = this.username.trim().toLowerCase();
+    try {
+        // Ensure username is properly formatted
+        if (this.isModified('username')) {
+            if (!this.username || typeof this.username !== 'string') {
+                throw new Error('Username is required and must be a string');
+            }
+            
+            // Trim and convert to lowercase
+            this.username = this.username.trim().toLowerCase();
+            
+            // Validate username format
+            const usernameRegex = /^[a-zA-Z0-9_]+$/;
+            if (!usernameRegex.test(this.username)) {
+                throw new Error('Username can only contain letters, numbers, and underscores');
+            }
+            
+            // Ensure length constraints
+            if (this.username.length < 3 || this.username.length > 30) {
+                throw new Error('Username must be between 3 and 30 characters');
+            }
+        }
+        
+        // Update last login timestamp if this is a login update
+        if (this.isModified('lastLogin') && !this.isNew) {
+            this.updatedAt = new Date();
+        }
+        
+        next();
+    } catch (error) {
+        console.error('Error in user pre-save hook:', error);
+        next(error);
     }
-    
-    // Update last login timestamp if this is a login update
-    if (this.isModified('lastLogin') && !this.isNew) {
-        this.updatedAt = new Date();
-    }
-    
-    next();
 });
 
 // Error handling middleware for duplicate key errors
