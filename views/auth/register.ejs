@@ -2,171 +2,239 @@
 
 <div class="container py-5">
     <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card bg-dark-3 border-0 shadow-sm">
-                <div class="card-body p-5">
-                    <h2 class="text-center mb-4" style="color: #ffffff; font-size: 2rem; font-weight: 700; letter-spacing: 0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">Create Account</h2>
-                    
-                    <% if (typeof error === 'string' && error.trim() !== '') { %>
-                        <div class="alert alert-danger mb-3" role="alert">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-exclamation-circle me-2"></i>
-                                <div><%= error %></div>
-                            </div>
-                        </div>
-                    <% } %>
-                    <% if (typeof success === 'string' && success.trim() !== '') { %>
-                        <div class="alert alert-success mb-3" role="alert">
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-check-circle me-2"></i>
-                                <div><%= success %></div>
-                            </div>
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                <div class="card-header bg-dark text-white py-4">
+                    <h2 class="h4 mb-0 text-center">Create Your Account</h2>
+                </div>
+                <div class="card-body p-4 p-md-5">
+                    <% if (typeof error === 'string' && error) { %>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            <%= error %>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     <% } %>
                     
-                    <form id="registerForm" class="needs-validation" action="/register" method="POST" novalidate>
-                        <div class="mb-3">
-                            <label for="username" class="form-label text-white-50">Username</label>
-                            <input type="text" 
-                                   class="form-control <%= (user && user.username === '') ? 'is-invalid' : '' %>" 
-                                   id="username" 
-                                   name="username" 
-                                   value="<%= (user && user.username) ? user.username : '' %>"
-                                   required 
-                                   minlength="3" 
-                                   maxlength="30" 
-                                   pattern="^[a-zA-Z0-9_]+"
-                                   oninput="this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '')">
-                            <div class="invalid-feedback">
-                                Please choose a username (3-30 characters, letters, numbers, and underscores only).
-                            </div>
+                    <% if (typeof success === 'string' && success) { %>
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <%= success %>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
-                        
-                        <div class="mb-3">
-                            <label for="password" class="form-label text-white-50">Password</label>
+                    <% } %>
+                    
+                    <form id="registerForm" action="/register" method="POST" class="needs-validation" novalidate>
+                        <div class="mb-4">
+                            <label for="username" class="form-label">Username <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="password" name="password" 
-                                       required minlength="8" 
-                                       pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]+">
-                                <button class="btn btn-outline-secondary toggle-password" type="button" 
-                                        data-bs-toggle="tooltip" title="Show password">
-                                    <i class="fas fa-eye"></i>
-                                </button>
+                                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                                <input type="text" 
+                                       class="form-control form-control-lg" 
+                                       id="username" 
+                                       name="username" 
+                                       value="<%= (user && user.username) ? user.username : '' %>"
+                                       required 
+                                       minlength="3" 
+                                       maxlength="30" 
+                                       pattern="^[a-zA-Z0-9_]+"
+                                       autocomplete="username"
+                                       autofocus
+                                       oninput="this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '')">
                             </div>
-                            <div class="form-text text-white-50">
-                                Password must be at least 8 characters long and contain at least 1 letter and 1 number.
-                            </div>
+                            <div class="form-text">3-30 characters. Letters, numbers, and underscores only.</div>
                             <div class="invalid-feedback">
-                                Please enter a valid password.
+                                Please enter a valid username (3-30 characters, letters, numbers, and underscores only).
                             </div>
                         </div>
                         
                         <div class="mb-4">
-                            <label for="confirmPassword" class="form-label text-white-50">Confirm Password</label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label for="password" class="form-label mb-0">Password <span class="text-danger">*</span></label>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i> At least 8 characters, 1 letter & 1 number
+                                </div>
+                            </div>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="confirmPassword" 
-                                       name="confirmPassword" required>
-                                <button class="btn btn-outline-secondary toggle-password" type="button"
-                                        data-bs-toggle="tooltip" title="Show password">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" 
+                                       class="form-control form-control-lg" 
+                                       id="password" 
+                                       name="password" 
+                                       required 
+                                       minlength="8" 
+                                       pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]+"
+                                       autocomplete="new-password">
+                                <button class="btn btn-outline-secondary toggle-password" type="button" 
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Show password">
                                     <i class="fas fa-eye"></i>
                                 </button>
-                            </div>
-                            <div class="invalid-feedback">
-                                Passwords must match.
+                                <div class="invalid-feedback">
+                                    Password must be at least 8 characters long and contain at least 1 letter and 1 number.
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                <span class="button-text">Create Account</span>
+                        <div class="mb-4">
+                            <label for="confirmPassword" class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" 
+                                       class="form-control form-control-lg" 
+                                       id="confirmPassword" 
+                                       name="confirmPassword" 
+                                       required
+                                       autocomplete="new-password">
+                                <button class="btn btn-outline-secondary toggle-password" type="button"
+                                        data-bs-toggle="tooltip" 
+                                        data-bs-placement="top" 
+                                        title="Show password">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <div class="invalid-feedback">
+                                    Passwords do not match.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                            <label class="form-check-label" for="terms">
+                                I agree to the <a href="/terms" target="_blank" class="text-decoration-none">Terms of Service</a> and 
+                                <a href="/privacy" target="_blank" class="text-decoration-none">Privacy Policy</a>.
+                            </label>
+                            <div class="invalid-feedback">
+                                You must agree to the terms and conditions.
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-3">
+                            <button type="submit" class="btn btn-primary btn-lg py-2">
+                                <i class="fas fa-user-plus me-2"></i>Create Account
                             </button>
+                            <div class="text-center mt-3">
+                                <p class="text-muted mb-2">Already have an account?</p>
+                                <a href="/login" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Log In
+                                </a>
+                            </div>
                         </div>
                     </form>
                     
-                    <script>
-                    // Form validation
-                    (function() {
-                        'use strict';
-                        
-                        // Fetch the form we want to apply custom validation to
-                        const form = document.getElementById('registerForm');
-                        const password = document.getElementById('password');
-                        const confirmPassword = document.getElementById('confirmPassword');
-                        
-                        // Toggle password visibility
-                        document.querySelectorAll('.toggle-password').forEach(button => {
-                            button.addEventListener('click', function() {
-                                const input = this.parentElement.querySelector('input');
-                                const icon = this.querySelector('i');
-                                
-                                if (input.type === 'password') {
-                                    input.type = 'text';
-                                    icon.classList.remove('fa-eye');
-                                    icon.classList.add('fa-eye-slash');
-                                    this.setAttribute('title', 'Hide password');
-                                } else {
-                                    input.type = 'password';
-                                    icon.classList.remove('fa-eye-slash');
-                                    icon.classList.add('fa-eye');
-                                    this.setAttribute('title', 'Show password');
-                                }
-                                
-                                // Update tooltip
-                                const tooltip = bootstrap.Tooltip.getInstance(this);
-                                if (tooltip) {
-                                    tooltip.hide();
-                                    tooltip.setContent({ '.tooltip-inner': this.getAttribute('title') });
-                                    tooltip.show();
-                                }
-                            });
-                        });
-                        
-                        // Custom validation for password match
-                        function validatePasswordMatch() {
-                            if (password.value !== confirmPassword.value) {
-                                confirmPassword.setCustomValidity('Passwords must match');
-                            } else {
-                                confirmPassword.setCustomValidity('');
-                            }
-                        }
-                        
-                        // Add event listeners
-                        password.addEventListener('input', validatePasswordMatch);
-                        confirmPassword.addEventListener('input', validatePasswordMatch);
-                        
-                        // Form submission
-                        form.addEventListener('submit', function(event) {
-                            if (!form.checkValidity()) {
-                                event.preventDefault();
-                                event.stopPropagation();
-                            } else {
-                                // Show loading state
-                                const button = form.querySelector('button[type="submit"]');
-                                const spinner = button.querySelector('.spinner-border');
-                                const buttonText = button.querySelector('.button-text');
-                                
-                                button.disabled = true;
-                                spinner.classList.remove('d-none');
-                                buttonText.textContent = 'Creating Account...';
-                            }
-                            
-                            form.classList.add('was-validated');
-                        }, false);
-                        
-                        // Initialize tooltips
-                        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                        tooltipTriggerList.map(function (tooltipTriggerEl) {
-                            return new bootstrap.Tooltip(tooltipTriggerEl);
-                        });
-                    })();
-                    </script>
-                    
                     <div class="text-center mt-4">
-                        <p class="text-white-50 mb-0">Already have an account? <a href="/login" class="text-primary">Log in</a></p>
+                        <p class="small text-muted">By creating an account, you agree to our 
+                            <a href="/terms" class="text-decoration-none">Terms of Service</a> and 
+                            <a href="/privacy" class="text-decoration-none">Privacy Policy</a>.
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    'use strict';
+    
+    const form = document.getElementById('registerForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirmPassword');
+    const submitButton = form ? form.querySelector('button[type="submit"]') : null;
+    
+    // Toggle password visibility
+    document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function() {
+            const inputGroup = this.closest('.input-group');
+            const input = inputGroup ? inputGroup.querySelector('input') : null;
+            const icon = this.querySelector('i');
+            
+            if (!input) return;
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+                this.setAttribute('title', 'Hide password');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+                this.setAttribute('title', 'Show password');
+            }
+            
+            // Update tooltip
+            const tooltip = bootstrap.Tooltip.getInstance(this);
+            if (tooltip) {
+                tooltip.hide();
+                tooltip.setContent({ '.tooltip-inner': this.getAttribute('title') });
+                tooltip.show();
+            }
+        });
+    });
+    
+    // Custom validation for password match
+    function validatePasswordMatch() {
+        if (passwordInput.value !== confirmPasswordInput.value) {
+            confirmPasswordInput.setCustomValidity('Passwords do not match');
+        } else {
+            confirmPasswordInput.setCustomValidity('');
+        }
+    }
+    
+    // Add event listeners for real-time validation
+    if (passwordInput && confirmPasswordInput) {
+        passwordInput.addEventListener('input', validatePasswordMatch);
+        confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+    }
+    
+    // Form submission
+    if (form && submitButton) {
+        form.addEventListener('submit', function(event) {
+            // Re-validate password match on submit
+            validatePasswordMatch();
+            
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            } else {
+                // Show loading state
+                const button = form.querySelector('button[type="submit"]');
+                const icon = button.querySelector('i');
+                const originalHTML = button.innerHTML;
+                
+                button.disabled = true;
+                button.innerHTML = `
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Creating Account...
+                `;
+                
+                // Re-enable after 30 seconds if still on page
+                setTimeout(() => {
+                    if (button.disabled) {
+                        button.disabled = false;
+                        button.innerHTML = originalHTML;
+                        
+                        // Re-attach event listeners
+                        const newButton = form.querySelector('button[type="submit"]');
+                        if (newButton) {
+                            newButton.addEventListener('click', form.submit);
+                        }
+                    }
+                }, 30000);
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+    }
+    
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>

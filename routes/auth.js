@@ -41,9 +41,9 @@ const renderLoginError = (res, error, username = '') => {
 };
 
 // Login form submission with validation and error handling
-router.post('/login', validateLogin, async (req, res, next) => {
-    let { username, password } = req.body;
-    username = username.toLowerCase();
+router.post('/login', validateLogin, (req, res, next) => {
+    const { username, password } = req.body;
+    const usernameLower = username.toLowerCase();
     const errors = validationResult(req);
     
     // Handle validation errors
@@ -51,17 +51,15 @@ router.post('/login', validateLogin, async (req, res, next) => {
         return renderLoginError(res, errors.array()[0].msg, username);
     }
     
-    // Check if the user exists before attempting authentication
-    try {
-        const user = await User.findOne({
-            $or: [
-                { username: username },
-                { email: username.toLowerCase() }
-            ]
-        });
+    // Use passport's local strategy for authentication
+    passport.authenticate('local', (err, user, info) => {
+        if (err) {
+            console.error('Authentication error:', err);
+            return renderLoginError(res, 'An error occurred during authentication. Please try again.', username);
+        }
         
         if (!user) {
-            return renderLoginError(res, 'No account found with that username or email', username);
+            return renderLoginError(res, info.message || 'Invalid username or password', username);
         }
         
         // Check if account is active
@@ -69,87 +67,34 @@ router.post('/login', validateLogin, async (req, res, next) => {
             return renderLoginError(res, 'This account has been deactivated. Please contact support.', username);
         }
         
-        // Check if account is locked
-        if (user.isLocked) {
-            const timeLeft = Math.ceil((user.lockUntil - Date.now()) / 60000);
-            return renderLoginError(
-                res, 
-                `Account locked. Please try again in ${timeLeft} minute${timeLeft !== 1 ? 's' : ''}.`, 
-                username
-            );
-        }
-        
-        // Proceed with authentication
-        passport.authenticate('local', async (err, user, info) => {
-            try {
-                if (err) {
-                    console.error('Authentication error:', err);
-                    
-                    // Handle specific authentication errors
-                    if (err.name === 'IncorrectPasswordError' || err.name === 'IncorrectUsernameError') {
-                        // Increment failed login attempts
-                        if (user && typeof user.incrementLoginAttempts === 'function') {
-                            await user.incrementLoginAttempts();
-                        }
-                        return renderLoginError(res, 'Invalid username or password', username);
-                    }
-                    return next(err);
-                }
-                
-                if (!user) {
-                    return renderLoginError(res, info.message || 'Invalid username or password', username);
-                }
-
-                // Log the user in
-                req.logIn(user, async (err) => {
-                    if (err) {
-                        console.error('Login error:', err);
-                        return next(err);
-                    }
-
-                    try {
-                        // Reset failed login attempts on successful login
-                        if (user.failedLoginAttempts > 0 || user.lockUntil) {
-                            user.failedLoginAttempts = 0;
-                            user.lockUntil = undefined;
-                            await user.save();
-                        }
-                        
-                        // Update last login time
-                        await user.updateLastLogin();
-                        
-                        // Set success message
-                        req.flash('success', `Welcome back, ${user.username}!`);
-                        
-                        // Check if user needs to reset password
-                        if (user.forcePasswordReset) {
-                            req.flash('info', 'Please update your password.');
-                            return res.redirect('/account/password/change');
-                        }
-                        
-                        // Redirect to the original URL or default
-                        const redirectTo = req.session.returnTo || '/campgrounds';
-                        delete req.session.returnTo;
-                        return res.redirect(redirectTo);
-                        
-                    } catch (updateError) {
-                        console.error('Error during login process:', updateError);
-                        // Even if update fails, still log the user in
-                        req.flash('success', `Welcome back, ${user.username}!`);
-                        return res.redirect('/campgrounds');
-                    }
-                });
-                
-            } catch (error) {
-                console.error('Login process error:', error);
+        // Log the user in
+        req.logIn(user, async (err) => {
+            if (err) {
+                console.error('Login error:', err);
                 return renderLoginError(res, 'An error occurred during login. Please try again.', username);
             }
-        })(req, res, next);
-        
-    } catch (err) {
-        console.error('Error during login:', err);
-        return renderLoginError(res, 'An error occurred during login. Please try again.', username);
-    }
+            
+            try {
+                // Update last login time
+                user.lastLogin = new Date();
+                await user.save();
+                
+                // Set success message
+                req.flash('success', `Welcome back, ${user.username}!`);
+                
+                // Redirect to the original URL or default
+                const redirectTo = req.session.returnTo || '/campgrounds';
+                delete req.session.returnTo;
+                return res.redirect(redirectTo);
+                
+            } catch (updateError) {
+                console.error('Error updating user after login:', updateError);
+                // Even if update fails, still log the user in
+                req.flash('success', `Welcome back, ${user.username}!`);
+                return res.redirect('/campgrounds');
+            }
+        });
+    })(req, res, next);
 });
 
 // Register page
@@ -215,8 +160,12 @@ router.post('/register', validateRegister, async (req, res, next) => {
             });
         }
 
-        // Create new user
-        const newUser = new User({ username: username.trim() });
+
+        // Create new user with isActive set to true
+        const newUser = new User({ 
+            username: username.trim(),
+            isActive: true
+        });
 
         // Register user with passport-local-mongoose
         User.register(newUser, password, async (err, user) => {
@@ -239,13 +188,15 @@ router.post('/register', validateRegister, async (req, res, next) => {
                 }
 
                 try {
-                    // Update last login time
-                    await user.updateLastLogin();
+                    // Set last login time
+                    user.lastLogin = new Date();
+                    await user.save();
                     
                     req.flash('success', `Welcome to FindMyCamp, ${user.username}!`);
                     return res.redirect('/campgrounds');
                 } catch (updateError) {
                     console.error('Error updating last login after registration:', updateError);
+                    // Even if update fails, continue with login
                     req.flash('success', `Welcome to FindMyCamp, ${user.username}!`);
                     return res.redirect('/campgrounds');
                 }
@@ -260,6 +211,25 @@ router.post('/register', validateRegister, async (req, res, next) => {
             page: 'register'
         });
     }
+});
+
+// Logout route
+router.get('/logout', (req, res, next) => {
+    req.logout((err) => {
+        if (err) { 
+            console.error('Logout error:', err);
+            return next(err); 
+        }
+        req.session.destroy((err) => {
+            if (err) {
+                console.error('Session destruction error:', err);
+                return next(err);
+            }
+            res.clearCookie('findMyCamp.sid');
+            req.flash('success', 'Successfully logged out. Come back soon!');
+            res.redirect('/campgrounds');
+        });
+    });
 });
 
 module.exports = router;

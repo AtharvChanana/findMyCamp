@@ -60,19 +60,26 @@ const sessionStore = MongoStore.create({
 });
 
 // Session configuration
+const isProduction = process.env.NODE_ENV === 'production';
 const sessionConfig = {
-    name: 'findMyCampSession',
+    name: 'findMyCamp.sid',
     secret: process.env.SESSION_SECRET || 'fallback_secret_key',
     resave: false,
     saveUninitialized: false,
     store: sessionStore,
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24 * 7,
-        sameSite: 'lax'
+        secure: isProduction,
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+        sameSite: isProduction ? 'none' : 'lax',
+        ...(isProduction && { domain: process.env.DOMAIN || '.onrender.com' })
     }
 };
+
+// Trust first proxy (important for secure cookies in production)
+if (isProduction) {
+    app.set('trust proxy', 1);
+}
 
 // Middleware setup
 app.use(express.urlencoded({ extended: true }));
@@ -80,8 +87,7 @@ app.use(express.json());
 app.use(methodOverride('_method'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Initialize session middleware
-app.set('trust proxy', 1);
+// Session middleware
 app.use(session(sessionConfig));
 app.use(flash());
 
@@ -96,7 +102,6 @@ passport.deserializeUser(User.deserializeUser());
 
 // Make user and currentPath available to all templates
 app.use((req, res, next) => {
-    console.log('Current user:', req.user);
     res.locals.currentUser = req.user;
     res.locals.currentPath = req.path;
     res.locals.success = req.flash('success');

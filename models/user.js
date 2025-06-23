@@ -10,7 +10,8 @@ const userSchema = new Schema({
         trim: true,
         minlength: [3, 'Username must be at least 3 characters long'],
         maxlength: [30, 'Username cannot be longer than 30 characters'],
-        match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores']
+        match: [/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'],
+        lowercase: true
     },
     savedCampgrounds: [{
         type: Schema.Types.ObjectId,
@@ -27,19 +28,27 @@ const userSchema = new Schema({
     forcePasswordReset: {
         type: Boolean,
         default: false
-    },
-    failedLoginAttempts: {
-        type: Number,
-        default: 0,
-        min: 0
-    },
-    lockUntil: {
-        type: Date
     }
 }, {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toJSON: { 
+        virtuals: true,
+        transform: function(doc, ret) {
+            delete ret.password; // Never send password hash to client
+            delete ret.salt;
+            delete ret.__v;
+            return ret;
+        }
+    },
+    toObject: { 
+        virtuals: true,
+        transform: function(doc, ret) {
+            delete ret.password;
+            delete ret.salt;
+            delete ret.__v;
+            return ret;
+        }
+    }
 });
 
 // Plugin configuration with error handling
@@ -53,114 +62,63 @@ userSchema.plugin(passportLocalMongoose, {
         MissingUsernameError: 'No username was given',
         MissingPasswordError: 'No password was given',
         UserExistsError: 'A user with the given username is already registered'
-    }
+    },
+    limitAttempts: true,
+    maxAttempts: 5,
+    unlockInterval: 300 // 5 minutes in seconds
 });
 
-// Add a pre-save hook to handle errors
-userSchema.pre('save', function(next) {
-    // Add any pre-save logic here
-    next();
-});
-
-// Add a method to get user profile
+// Add a method to get user profile without sensitive data
 userSchema.methods.getProfile = function() {
     return {
-        _id: this._id,
+        id: this._id,
         username: this.username,
-        savedCampgrounds: this.savedCampgrounds,
-        lastLogin: this.lastLogin
+        lastLogin: this.lastLogin,
+        isActive: this.isActive,
+        createdAt: this.createdAt,
+        campgroundsCount: this.savedCampgrounds ? this.savedCampgrounds.length : 0
     };
 };
 
-// Add a static method to find by username with error handling
+// Add a static method to find by username with case-insensitive search
 userSchema.statics.findByUsername = async function(username) {
-    try {
-        return await this.findOne({ username });
-    } catch (error) {
-        console.error('Error finding user by username:', error);
-        throw error;
-    }
+    if (!username) return null;
+    return this.findOne({ username: new RegExp(`^${username}$`, 'i') });
 };
 
-// Add a method to update last login time
-userSchema.methods.updateLastLogin = async function() {
-    try {
-        this.lastLogin = new Date();
-        return await this.save();
-    } catch (error) {
-        console.error('Error updating last login:', error);
-        throw error;
-    }
-};
-
-// Add a method to check if user is active
-userSchema.methods.checkIfActive = function() {
-    return this.isActive;
-};
-
-// Add a method to deactivate user
-userSchema.methods.deactivate = async function() {
-    try {
-        this.isActive = false;
-        return await this.save();
-    } catch (error) {
-        console.error('Error deactivating user:', error);
-        throw error;
-    }
-};
-
-// Add a method to activate user
-userSchema.methods.activate = async function() {
-    try {
-        this.isActive = true;
-        return await this.save();
-    } catch (error) {
-        console.error('Error activating user:', error);
-        throw error;
-    }
-};
-
-// Add methods for handling failed login attempts
-userSchema.methods.incrementLoginAttempts = async function() {
-    // If we have a previous lock that has expired, restart at 1
-    if (this.lockUntil && this.lockUntil < Date.now()) {
-        return await this.updateOne({
-            $set: { failedLoginAttempts: 1 },
-            $unset: { lockUntil: 1 }
-        });
-    }
-    
-    // Otherwise increment
-    const updates = { $inc: { failedLoginAttempts: 1 } };
-    
-    // Lock the account if we've reached max attempts
-    if (this.failedLoginAttempts + 1 >= 5) {
-        updates.$set = {
-            lockUntil: Date.now() + 15 * 60 * 1000 // 15 minutes
-        };
-    }
-    
-    return await this.updateOne(updates);
-};
-
-// Helper method to check if account is currently locked
-userSchema.virtual('isLocked').get(function() {
-    return !!(this.lockUntil && this.lockUntil > Date.now());
-});
-
-// Pre-save hook to ensure username is lowercase
+// Pre-save hook to handle username formatting and last login updates
 userSchema.pre('save', function(next) {
+    // Ensure username is trimmed and lowercase
     if (this.isModified('username')) {
-        this.username = this.username.toLowerCase();
+        this.username = this.username.trim().toLowerCase();
     }
+    
+    // Update last login timestamp if this is a login update
+    if (this.isModified('lastLogin') && !this.isNew) {
+        this.updatedAt = new Date();
+    }
+    
     next();
 });
 
-// Error handling middleware
+// Error handling middleware for duplicate key errors
 userSchema.post('save', function(error, doc, next) {
     if (error.name === 'MongoServerError' && error.code === 11000) {
         next(new Error('A user with this username already exists'));
     } else {
+        next(error);
+    }
+});
+
+// Pre-remove hook to clean up related data when a user is deleted
+userSchema.pre('remove', async function(next) {
+    try {
+        // Remove user's campgrounds
+        await mongoose.model('Campground').deleteMany({ author: this._id });
+        // Remove user's reviews
+        await mongoose.model('Review').deleteMany({ author: this._id });
+        next();
+    } catch (error) {
         next(error);
     }
 });
