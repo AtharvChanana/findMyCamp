@@ -1,8 +1,7 @@
 const mongoose = require('mongoose');
 const User = require('../models/user');
-require('dotenv').config();
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/findMyCamp';
+const MONGODB_URI = 'mongodb+srv://atharv:Atharv1418@cluster0.hhcdn4p.mongodb.net/findMyCamp?retryWrites=true&w=majority&appName=Cluster0';
 
 async function createAdmin() {
     await mongoose.connect(MONGODB_URI);
