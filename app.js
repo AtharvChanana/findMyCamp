@@ -95,6 +95,7 @@ passport.deserializeUser(User.deserializeUser());
 
 // Make user and currentPath available to all templates
 app.use((req, res, next) => {
+    console.log('Current user:', req.user);
     res.locals.currentUser = req.user;
     res.locals.currentPath = req.path;
     res.locals.success = req.flash('success');

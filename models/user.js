@@ -169,63 +169,6 @@ userSchema.post('save', function(error, doc, next) {
     }
 });
 
-// Plugin configuration with error handling
-userSchema.plugin(passportLocalMongoose, {
-    usernameField: 'username',
-    passwordField: 'password',
-    errorMessages: {
-        UserExistsError: 'A user with the given username is already registered',
-        IncorrectPasswordError: 'Incorrect password',
-        IncorrectUsernameError: 'Incorrect username',
-        MissingUsernameError: 'No username was given',
-        MissingPasswordError: 'No password was given',
-        UserExistsError: 'A user with the given username is already registered'
-    },
-    // Custom authentication function to handle account locking
-    authenticate: function(username, password, cb) {
-        const User = this;
-        
-        this.findByUsername(username, (err, user) => {
-            if (err) { return cb(err); }
-            
-            // No user found
-            if (!user) {
-                return cb(null, false, { message: 'Incorrect username or password' });
-            }
-            
-            // Check if account is locked
-            if (user.isLocked) {
-                return cb(null, false, { 
-                    message: 'Account is locked. Please try again later.' 
-                });
-            }
-            
-            // Authenticate with password
-            user.authenticate(password, (err, user, passwordError) => {
-                if (err) { return cb(err); }
-                
-                // If password is incorrect, increment failed attempts
-                if (!user) {
-                    user.incrementLoginAttempts();
-                    return cb(null, false, { 
-                        message: passwordError.message || 'Incorrect username or password' 
-                    });
-                }
-                
-                // If we get here, authentication was successful
-                // Reset failed login attempts
-                if (user.failedLoginAttempts > 0) {
-                    user.failedLoginAttempts = 0;
-                    user.lockUntil = undefined;
-                    user.save();
-                }
-                
-                return cb(null, user);
-            });
-        });
-    }
-});
-
 const User = mongoose.model('User', userSchema);
 
 module.exports = User;

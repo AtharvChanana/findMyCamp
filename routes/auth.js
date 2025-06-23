@@ -42,7 +42,8 @@ const renderLoginError = (res, error, username = '') => {
 
 // Login form submission with validation and error handling
 router.post('/login', validateLogin, async (req, res, next) => {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
+    username = username.toLowerCase();
     const errors = validationResult(req);
     
     // Handle validation errors
