@@ -38,11 +38,3 @@ module.exports.validateCampground = (req, res, next) => {
         next();
     }
 };
-
-module.exports.isAdmin = (req, res, next) => {
-    if (!req.user || !req.user.isAdmin) {
-        req.flash('error', 'You do not have admin permissions!');
-        return res.redirect('/campgrounds');
-    }
-    next();
-};

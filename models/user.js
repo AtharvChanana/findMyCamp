@@ -35,10 +35,6 @@ const userSchema = new Schema({
     },
     lockUntil: {
         type: Date
-    },
-    isAdmin: {
-        type: Boolean,
-        default: false
     }
 }, {
     timestamps: true,
